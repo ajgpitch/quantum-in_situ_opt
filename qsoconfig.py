@@ -63,19 +63,21 @@ def gen_config(param_fname=None):
     Optimizer
     """
 
-    optim = gen_config_objects(param_fname)
-    gen_config_dynamics(optim.dynamics)
+    #TODO: Still working on this
+    cfg = gen_optim_config(param_fname)
+    optim = gen_optim_objects(cfg)
+    config_dynamics(optim.dynamics)
 
     return optim
 
 
-def gen_config_objects(param_fname=None):
+def gen_optim_config(param_fname=None):
     """
     Create the optimiser objects and load the configuration.
 
     Returns
     -------
-    Optimizer
+    OptimConfig
     """
 
     parser = argparse.ArgumentParser(description="Command line argument parser")
@@ -495,9 +497,9 @@ def gen_config_objects(param_fname=None):
 
     return optim
 
-def gen_config_dynamics(dyn):
+def config_dynamics(dyn):
     """
-    Generate the dynamics generators and targets etc
+    Configure the dynamics generators and targets etc
     """
 
     # ****************************************************************
