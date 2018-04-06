@@ -20,12 +20,24 @@ https://arxiv.org/abs/1701.01723
 import inspect, os, sys
 import shutil
 import datetime
+import signal
 #QuTiP
 import qutip.logging_utils as logging
 logger = logging.get_logger()
 #Local
 import qsoconfig, qso, qsorun
 from doubleprint import DoublePrint
+
+def sigterm_handler(_signo, _stack_frame):
+    print("Terminated")
+    raise KeyboardInterrupt("Terminated")
+    #sys.exit(0)
+
+def sigkill_handler(_signo, _stack_frame):
+    print("Killed")
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, sigterm_handler)
 
 log_level=logging.WARN
 logger.setLevel(log_level)
@@ -35,7 +47,7 @@ base_name = ''
 log_level = logging.DEBUG
 logger.setLevel(log_level)
 
-param_fname = 'params-quant_self_opt-3q_ising_chain.ini'
+param_fname = 'params-quant_self_opt.ini'
 
 optim = qsoconfig.gen_config(param_fname)
 cfg = optim.config

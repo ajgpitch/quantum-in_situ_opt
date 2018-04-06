@@ -28,15 +28,9 @@ def round_sigfigs(num, sig_figs):
     else:
         return 0  # Can't take the log of 0
 
-#
-# /home/alex/quant_self_optim/HPCW_output/na_limit/3qubit/3qubit-chain-ising_equal-xy_ctrl-cNOT1-sens-nq3fet1e-1-try3
-# /home/alex/quant_self_optim/HPCW_output/na_limit/4qubit/4qubit-chain-ising_equal-xy_ctrl-cNOT1-sens-nq4fet1e-1-try4
-#/home/alex/quant_self_optim/HPCW_output/na_limit/5qubit/5qubit-chain-ising_equal-xy_ctrl-cNOT1-sens-nq5fet1e-1-try2
-# /home/alex/quant_self_optim/HPCW_output/na_limit/6qubit/6qubit-chain-ising_equal-xy_ctrl-cNOT1-sens-nq6fet1e-1-try2
-# /home/agp1/quant_self_optim/HPCW_output/na_limit-CNOT_sep/3qubit/3qubit-chain-ising_equal-xy_ctrl-cNOT1-sens-3q3e-3-try1
-data_dir = "/home/agp1/quant_self_optim/HPCW_output/na_limit-CNOT_sep/7qubit"
-all_subdir = True
-result_subdir = "7qubit-chain-ising_equal-xy_ctrl-cNOT1-sens-7q1e-3-try1"
+
+data_dir = "example_output"
+result_subdir = "ising_chain-3q-nal"
 #set comb_coll_fname=None to collate separately
 comb_coll_fname = None
 #result_subdir = "5qubit-chain-ising_equal-xy_ctrl-cNOT1-fet1e-1-na2e-2"
