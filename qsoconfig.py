@@ -52,11 +52,27 @@ def round_sigfigs(num, sig_figs):
     else:
         return 0  # Can't take the log of 0
 
-def gen_config(param_fname='unctrlsympl_params.ini'):
+def gen_config(param_fname=None):
     """
-    Generate the configuration for the oscillator
+    Generate the configuration for the quantum system and optimiser
     In general values from the parameter file overwrite those hardcoded
     and these in turn are overwritten by cmdline args
+
+    Returns
+    -------
+    Optimizer
+    """
+
+    optim = gen_config_objects(param_fname)
+    gen_config_dynamics(optim.dynamics)
+
+    return optim
+
+
+def gen_config_objects(param_fname=None):
+    """
+    Create the optimiser objects and load the configuration.
+
     Returns
     -------
     Optimizer
@@ -118,6 +134,8 @@ def gen_config(param_fname='unctrlsympl_params.ini'):
                 "file name '{}' does not exist.".format(param_fname))
         else:
             print("Parameters will be read from:\n{}".format(cfg.param_fpath))
+    elif param_fname is None:
+        print ("No parameter file. Using defaults in code.")
     elif os.path.abspath(param_fname):
         cfg.param_fname = os.path.basename(param_fname)
         cfg.param_fpath = param_fname
@@ -475,16 +493,18 @@ def gen_config(param_fname='unctrlsympl_params.ini'):
         dyn.stats = sts
         optim.stats = sts
 
+    return optim
+
+def gen_config_dynamics(dyn):
+    """
+    Generate the dynamics generators and targets etc
+    """
+
     # ****************************************************************
     # Define the physics of the problem
-
+    fid_comp = dyn.fid_computer
 
     print("Configuring drift...")
-    #The 4 below are all Qobj
-#    Sx = sigmax()
-#    Sy = sigmay()
-#    Sz = sigmaz()
-#    Si = identity(2)
 
     nq = dyn.num_qubits
     # ***** Drift *****
@@ -536,6 +556,5 @@ def gen_config(param_fname='unctrlsympl_params.ini'):
     fid_comp.sub_dims = sub_dims
     fid_comp.num_sub_sys = len(U_local_targs)
 
-    print("Num acc: {}".format(fid_comp.numer_acc))
+    # print("Num acc: {}".format(fid_comp.numer_acc))
 
-    return optim
