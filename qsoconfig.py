@@ -41,7 +41,7 @@ from choi_closed_fidcomp import FidCompPureChoiLocal, FidCompPureChoiGlobal
 import qso
 import qsostats
 
-log_level = logging.DEBUG
+log_level = logging.INFO
 logger.setLevel(log_level)
 
 def round_sigfigs(num, sig_figs):
@@ -71,7 +71,7 @@ def gen_config(param_fname=None):
     return optim
 
 
-def gen_optim_config(param_fname=None):
+def gen_optim_config(param_fname=None, parse_cl_args=True):
     """
     Create the optimiser objects and load the configuration.
 
@@ -79,55 +79,58 @@ def gen_optim_config(param_fname=None):
     -------
     OptimConfig
     """
-
-    parser = argparse.ArgumentParser(description="Command line argument parser")
-    parser.add_argument('-p', '--param_file', type=str, default="",
-                                    help="Parameters file name")
-    parser.add_argument('-o', '--output_dir', type=str, default="",
-                                    help="output sub directory")
-    parser.add_argument('-j', '--job_id', type=int, default=0,
-                                    help="Job id (from bsub)")
-    parser.add_argument('-i', '--job_idx', type=int, default=0,
-                                    help="Job index (from bsub batch array)")
-    parser.add_argument('-I', '--idx_opt', type=str, default='',
-                                    help="Job index option (what to do with it)")
-    #parser.add_argument('-S', '--job_size', type=int, default=0,
-    #                                help="Number of jobs in array")
-    parser.add_argument('-N', '--num_qubits', type=int, default=0,
-                                    help="Number of qubits")
-    parser.add_argument('-u', '--init_amps', type=str, default=0,
-                                    help="File name of initial amplitudes")
-    parser.add_argument('-m', '--num_tslots', type=int, default=0,
-                                    help="Number of timeslots")
-    parser.add_argument('-T', '--evo_time', type=float, default=0,
-                                    help="Total evolution time")
-    parser.add_argument('--evo_time_npi', type=int, default=0,
-                        help="Total evolution time in mulitples of pi")
-    parser.add_argument('--evo_time_npi_g0s', type=int, default=0,
-                        help="Total evolution time in mulitples of pi "
-                            "scaled by first coupling constant")
-    parser.add_argument('-a', '--numer_acc', type=float, default=-1.0,
-                                    help="Numerical accuracy")
-    parser.add_argument('-e', '--fid_err_targ', type=float, default=0.0,
-                                    help="Fidelity error target")
-    parser.add_argument('-n', '--num_cpus', type=int, default=0,
-                                    help="Fidelity error target")
-    parser.add_argument('-M', '--mp_opt', type=str, default='',
-                                    help="Multiprocessing option")
-    parser.add_argument('--mem_opt', type=int, default=0,
-                                    help="Memory optimising level")
-    parser.add_argument('--pulse_scaling', type=int, default=0.0,
-                                    help="Initial pulse scaling")
-    parser.add_argument('--max_wall_time', type=int, default=0.0,
-                                    help="Maximum simulation wall time")
-
     cfg = optimconfig.OptimConfig()
-    cfg.args = vars(parser.parse_args())
+    if parse_cl_args:
+        parser = argparse.ArgumentParser(description="Command line argument parser")
+        parser.add_argument('-p', '--param_file', type=str, default="",
+                                        help="Parameters file name")
+        parser.add_argument('-o', '--output_dir', type=str, default="",
+                                        help="output sub directory")
+        parser.add_argument('-j', '--job_id', type=int, default=0,
+                                        help="Job id (from bsub)")
+        parser.add_argument('-i', '--job_idx', type=int, default=0,
+                                        help="Job index (from bsub batch array)")
+        parser.add_argument('-I', '--idx_opt', type=str, default='',
+                                        help="Job index option (what to do with it)")
+        #parser.add_argument('-S', '--job_size', type=int, default=0,
+        #                                help="Number of jobs in array")
+        parser.add_argument('-N', '--num_qubits', type=int, default=0,
+                                        help="Number of qubits")
+        parser.add_argument('-u', '--init_amps', type=str, default=0,
+                                        help="File name of initial amplitudes")
+        parser.add_argument('-m', '--num_tslots', type=int, default=0,
+                                        help="Number of timeslots")
+        parser.add_argument('-T', '--evo_time', type=float, default=0,
+                                        help="Total evolution time")
+        parser.add_argument('--evo_time_npi', type=int, default=0,
+                            help="Total evolution time in mulitples of pi")
+        parser.add_argument('--evo_time_npi_g0s', type=int, default=0,
+                            help="Total evolution time in mulitples of pi "
+                                "scaled by first coupling constant")
+        parser.add_argument('-a', '--numer_acc', type=float, default=-1.0,
+                                        help="Numerical accuracy")
+        parser.add_argument('-e', '--fid_err_targ', type=float, default=0.0,
+                                        help="Fidelity error target")
+        parser.add_argument('-n', '--num_cpus', type=int, default=0,
+                                        help="Fidelity error target")
+        parser.add_argument('-M', '--mp_opt', type=str, default='',
+                                        help="Multiprocessing option")
+        parser.add_argument('--mem_opt', type=int, default=0,
+                                        help="Memory optimising level")
+        parser.add_argument('--pulse_scaling', type=int, default=0.0,
+                                        help="Initial pulse scaling")
+        parser.add_argument('--max_wall_time', type=int, default=0.0,
+                                        help="Maximum simulation wall time")
+
+        cfg.args = vars(parser.parse_args())
+    else:
+        cfg.args = None
+
     cfg.log_level = log_level
 
     cfg.use_param_file = True
 
-    if len(cfg.args['param_file']) > 0:
+    if parse_cl_args and len(cfg.args['param_file']) > 0:
         param_fname = cfg.args['param_file']
         cfg.param_fpath = os.path.join(os.getcwd(), param_fname)
         if not os.path.isfile(cfg.param_fpath):
@@ -137,6 +140,7 @@ def gen_optim_config(param_fname=None):
             print("Parameters will be read from:\n{}".format(cfg.param_fpath))
     elif param_fname is None:
         print ("No parameter file. Using defaults in code.")
+        cfg.use_param_file = False
     elif os.path.abspath(param_fname):
         cfg.param_fname = os.path.basename(param_fname)
         cfg.param_fpath = param_fname
@@ -155,7 +159,7 @@ def gen_optim_config(param_fname=None):
     cfg.verbosity = 0
     # Folder where output files will be stored
     # ~ can be used for home folder
-    cfg.output_dir = None
+    cfg.output_dir = "~quant_self_optim/output/default"
     # Used as part of output file name.
     cfg.output_base_name = 'general'
     # True means print messages saved in output file as well as std_out
@@ -175,6 +179,8 @@ def gen_optim_config(param_fname=None):
     # Multi-var optimisation methdo
     cfg.optim_method = 'LBFGSB'
     # Pulse generator type
+    # For other option see qutip.control.pulsegen.create_pulse_gen
+    # Only the random types make sense with multiple repetitions
     cfg.p_type = 'RND'
     cfg.check_grad = False
     # If true then processing stats will be collected
@@ -191,7 +197,7 @@ def gen_optim_config(param_fname=None):
     # These will be used as bounds for the PulseGenerator and the Optimizer
     cfg.amp_lbound = -np.Inf
     cfg.amp_ubound = np.Inf
-    # Number of repitions for each pulse optimisation
+    # Number of repetions for each pulse optimisation
     cfg.num_reps = 2
     # Number of cpus to utilise
     cfg.num_cpus = 1
@@ -217,25 +223,27 @@ def gen_optim_config(param_fname=None):
         print("Loading config parameters from {}".format(cfg.param_fpath))
         loadparams.load_parameters(cfg.param_fpath, config=cfg)
 
-    # override with command line params (if any)
-    if cfg.args['num_qubits'] > 0:
-        cfg.num_qubits = cfg.args['num_qubits']
-        print("Using num_qubits={} from command line".format(cfg.num_qubits))
-    if len(cfg.args['output_dir']) > 0:
-        cfg.output_dir = cfg.args['output_dir']
-        print("Using output_dir '{}' from command line".format(
-                                                        cfg.output_dir))
-    if cfg.args['num_cpus'] > 0:
-        cfg.num_cpus = cfg.args['num_cpus']
-        print("Using num_cpus={} from command line".format(cfg.num_cpus))
-
-    if len(cfg.args['mp_opt']) > 0:
-        cfg.mp_opt = cfg.args['mp_opt']
-        print("Using mp_opt={} from command line".format(cfg.mp_opt))
-
     cfg.plot_file_ext = cfg.plot_file_type.lower()
-    if cfg.args['job_id'] > 0:
-        cfg.job_id = cfg.args['job_id']
+
+    # override with command line params (if any)
+    if parse_cl_args:
+        if cfg.args['num_qubits'] > 0:
+            cfg.num_qubits = cfg.args['num_qubits']
+            print("Using num_qubits={} from command line".format(cfg.num_qubits))
+        if len(cfg.args['output_dir']) > 0:
+            cfg.output_dir = cfg.args['output_dir']
+            print("Using output_dir '{}' from command line".format(
+                                                            cfg.output_dir))
+        if cfg.args['num_cpus'] > 0:
+            cfg.num_cpus = cfg.args['num_cpus']
+            print("Using num_cpus={} from command line".format(cfg.num_cpus))
+
+        if len(cfg.args['mp_opt']) > 0:
+            cfg.mp_opt = cfg.args['mp_opt']
+            print("Using mp_opt={} from command line".format(cfg.mp_opt))
+
+        if cfg.args['job_id'] > 0:
+            cfg.job_id = cfg.args['job_id']
 
     if cfg.job_id:
         print("Processing job ID: {}".format(cfg.job_id))
@@ -252,8 +260,6 @@ def gen_optim_config(param_fname=None):
             cfg.plot_file_ext = "{}.{}".format(cfg.job_id, cfg.plot_file_type)
 
     logger.setLevel(cfg.log_level)
-    if not cfg.output_dir:
-        cfg.output_dir = cfg.target_id_text
 
     return cfg
 
@@ -306,7 +312,8 @@ def gen_optim_objects(cfg):
     # all interactions between qubit pairs
     dyn.iso_coup = True
     # Coupling strength for each interaction
-    # If a single float list, then this will be used for all interactions
+    # If a single float, then this will be used for all interactions
+    # (single float list will be converted to float)
     # Otherwise
     # If iso_coup=True then should be one list item per iteracting pair
     # If iso_coup=False then should be blocks of list items per iteracting pair
@@ -344,74 +351,81 @@ def gen_optim_objects(cfg):
     dyn.decoup_tslots = []
     #dyn.decoup_tslot_mask = []
 
+    if hasattr(cfg, 'args') and isinstance(cfg.args, argparse.ArgumentParser):
+        parse_cl_args = True
+    else:
+        parse_cl_args = False
+
     if cfg.use_param_file:
         # load the dynamics parameters
         # note these will overide those above if present in the file
         print("Loading dynamics parameters from {}".format(cfg.param_fpath))
         loadparams.load_parameters(cfg.param_fpath, dynamics=dyn)
 
-    if cfg.args['num_qubits'] > 0:
-        dyn.num_qubits = cfg.args['num_qubits']
-        print("num_qubits = {} from command line".format(dyn.num_qubits))
+    if parse_cl_args:
+        if cfg.args['num_qubits'] > 0:
+            dyn.num_qubits = cfg.args['num_qubits']
+            print("num_qubits = {} from command line".format(dyn.num_qubits))
 
-    # If job_idx is given, then use it to calculate some other parameter
-    # (which supersedes all other settings)
-    if cfg.job_idx and len(cfg.args['idx_opt']) > 0:
-        cfg.ext_mp = True
-        opt_str = cfg.args['idx_opt'].lower()
-        if opt_str == 'evo_time':
-            print("basing evo_time on job_idx... ")
-            num_evo_time = len(dyn.evo_time_list)
-            if num_evo_time > 0:
-                print("...using evo_time_list")
-                # get the evo time from the list
-                T_idx = (cfg.job_idx - 1) % num_evo_time
-                dyn.evo_time = dyn.evo_time_list[T_idx]
+        # If job_idx is given, then use it to calculate some other parameter
+        # (which supersedes all other settings)
+        if cfg.job_idx and len(cfg.args['idx_opt']) > 0:
+            cfg.ext_mp = True
+            opt_str = cfg.args['idx_opt'].lower()
+            if opt_str == 'evo_time':
+                print("basing evo_time on job_idx... ")
+                num_evo_time = len(dyn.evo_time_list)
+                if num_evo_time > 0:
+                    print("...using evo_time_list")
+                    # get the evo time from the list
+                    T_idx = (cfg.job_idx - 1) % num_evo_time
+                    dyn.evo_time = dyn.evo_time_list[T_idx]
+                else:
+                    print("...using start and increment")
+                    # calculate the evo_time from job_idx
+                    T_idx = (cfg.job_idx - 1) % dyn.num_evo_time
+                    dyn.evo_time = dyn.st_evo_time + dyn.d_evo_time*float(T_idx)
+                print("evo_time={} for job idx {}".format(dyn.evo_time,
+                                                          cfg.job_idx))
+            elif opt_str == 'num_tslots':
+                print("basing num_tslots on job_idx... ")
+                num_nts = len(dyn.num_tslots_list)
+                if num_nts > 0:
+                    print("...using num_tslots_list")
+                    nts_idx = (cfg.job_idx - 1) % num_nts
+                    dyn.num_tslots = dyn.num_tslots_list[nts_idx]
+                else:
+                    print("...using start and increment")
+                    # calculate the num_tslots from job_idx
+                    nts_idx = (cfg.job_idx - 1) % dyn.num_num_tslots
+                    dyn.num_tslots = dyn.st_num_tslots + dyn.d_num_tslots*nts_idx
+                print("num_tslots={} for job idx {}".format(dyn.num_tslots,
+                                                          cfg.job_idx))
             else:
-                print("...using start and increment")
-                # calculate the evo_time from job_idx
-                T_idx = (cfg.job_idx - 1) % dyn.num_evo_time
-                dyn.evo_time = dyn.st_evo_time + dyn.d_evo_time*float(T_idx)
-            print("evo_time={} for job idx {}".format(dyn.evo_time,
-                                                      cfg.job_idx))
-        elif opt_str == 'num_tslots':
-            print("basing num_tslots on job_idx... ")
-            num_nts = len(dyn.num_tslots_list)
-            if num_nts > 0:
-                print("...using num_tslots_list")
-                nts_idx = (cfg.job_idx - 1) % num_nts
-                dyn.num_tslots = dyn.num_tslots_list[nts_idx]
-            else:
-                print("...using start and increment")
-                # calculate the num_tslots from job_idx
-                nts_idx = (cfg.job_idx - 1) % dyn.num_num_tslots
-                dyn.num_tslots = dyn.st_num_tslots + dyn.d_num_tslots*nts_idx
-            print("num_tslots={} for job idx {}".format(dyn.num_tslots,
-                                                      cfg.job_idx))
-        else:
-            raise ValueError("No option for idx_opt '{}' "
-                            "in command line".format(opt_str))
+                raise ValueError("No option for idx_opt '{}' "
+                                "in command line".format(opt_str))
 
-    if cfg.args['evo_time'] > 0:
-        dyn.evo_time = cfg.args['evo_time']
-        print("Using evo_time={} from command line".format(dyn.evo_time))
+        if cfg.args['evo_time'] > 0:
+            dyn.evo_time = cfg.args['evo_time']
+            print("Using evo_time={} from command line".format(dyn.evo_time))
 
-    if cfg.args['evo_time_npi'] > 0:
-        dyn.evo_time = np.pi*cfg.args['evo_time_npi']
-        print("Using evo_time={} from command line evo_time_npi".format(
-                                                        dyn.evo_time))
-    if cfg.args['evo_time_npi_g0s'] > 0:
-        dyn.evo_time = np.pi*cfg.args['evo_time_npi_g0s']/dyn.coup_const[0]
-        print("Using evo_time={} from command line evo_time_npi_g0s".format(
-                                                        dyn.evo_time))
+        if cfg.args['evo_time_npi'] > 0:
+            dyn.evo_time = np.pi*cfg.args['evo_time_npi']
+            print("Using evo_time={} from command line evo_time_npi".format(
+                                                            dyn.evo_time))
+        if cfg.args['evo_time_npi_g0s'] > 0:
+            dyn.evo_time = np.pi*cfg.args['evo_time_npi_g0s']/dyn.coup_const[0]
+            print("Using evo_time={} from command line evo_time_npi_g0s".format(
+                                                            dyn.evo_time))
 
-    if cfg.args['num_tslots'] > 0:
-        dyn.num_tslots = cfg.args['num_tslots']
-        print("Using num_tslots={} from command line".format(dyn.num_tslots))
+        if cfg.args['num_tslots'] > 0:
+            dyn.num_tslots = cfg.args['num_tslots']
+            print("Using num_tslots={} from command line".format(dyn.num_tslots))
 
-    if cfg.args['mem_opt'] > 0:
-        dyn.memory_optimization = cfg.args['mem_opt']
-        print("Using mem_opt={} from command line".format(dyn.memory_optimization))
+        if cfg.args['mem_opt'] > 0:
+            dyn.memory_optimization = cfg.args['mem_opt']
+            print("Using mem_opt={} from command line".format(
+                                                    dyn.memory_optimization))
 
     print("evo_time={}".format(dyn.evo_time))
     print("num_tslots={}".format(dyn.num_tslots))
@@ -450,12 +464,13 @@ def gen_optim_objects(cfg):
         print("Loading termination condition parameters from {}".format(
                 cfg.param_fpath))
         loadparams.load_parameters(cfg.param_fpath, term_conds=tc)
-    if cfg.args['fid_err_targ'] > 0.0:
-        tc.fid_err_targ = cfg.args['fid_err_targ']
-        print("fid_err_targ = {} from command line".format(tc.fid_err_targ))
-    if cfg.args['max_wall_time'] > 0.0:
-        tc.max_wall_time = cfg.args['max_wall_time']
-        print("max_wall_time = {} from command line".format(tc.max_wall_time))
+    if parse_cl_args:
+        if cfg.args['fid_err_targ'] > 0.0:
+            tc.fid_err_targ = cfg.args['fid_err_targ']
+            print("fid_err_targ = {} from cmd line".format(tc.fid_err_targ))
+        if cfg.args['max_wall_time'] > 0.0:
+            tc.max_wall_time = cfg.args['max_wall_time']
+            print("max_wall_time = {} from cmd line".format(tc.max_wall_time))
 
     # Fidelity oomputer
     ft = cfg.fid_type.lower()
@@ -469,10 +484,20 @@ def gen_optim_objects(cfg):
     else:
         raise errors.UsageError("Unknown fid type {}".format(cfg.fid_type))
     fid_comp = dyn.fid_computer
+    # This is the maximum precsion that sub-system fidelities are 'measured'
+    # see choi_closed_fidcomp.my_round for details
+    # Zero implies full machine precision
     fid_comp.numer_acc = 0.0
+    # These next parameters are used in the automatic search for the numerical
+    # accuracy threshold
+    # If numer_acc_exact==false, then numer_acc, st_numer_acc, end_numer_acc
+    # will be treated as proportion of fid_err_targ (during config)
     fid_comp.numer_acc_exact = False
     fid_comp.st_numer_acc = 0.01
     fid_comp.end_numer_acc = 0.2
+    # These proportions are used to determine the boundaries for the search
+    # They are proportions of the number number of successful repeats
+    # for the scenario.
     fid_comp.success_prop_uthresh = 0.95
     fid_comp.success_prop_lthresh = 0.01
 
@@ -483,9 +508,10 @@ def gen_optim_objects(cfg):
         loadparams.load_parameters(cfg.param_fpath, obj=dyn.fid_computer,
                                     section='fidcomp')
 
-    if cfg.args['numer_acc'] >= 0.0:
-        fid_comp.numer_acc = cfg.args['numer_acc']
-        print("numer_acc = {} from command line".format(fid_comp.numer_acc))
+    if parse_cl_args:
+        if cfg.args['numer_acc'] >= 0.0:
+            fid_comp.numer_acc = cfg.args['numer_acc']
+            print("numer_acc = {} from cmd line".format(fid_comp.numer_acc))
 
     if not fid_comp.numer_acc_exact:
         fid_comp.numer_acc = round_sigfigs(
@@ -511,9 +537,10 @@ def gen_optim_objects(cfg):
             p_gen.scaling = cfg.amp_ubound - cfg.amp_lbound
             p_gen.offset = (cfg.amp_ubound + cfg.amp_lbound) / 2.0
 
-    if cfg.args['pulse_scaling'] > 0.0:
-        p_gen.scaling = cfg.args['pulse_scaling']
-        print("p_gen.scaling = {} from command line".format(p_gen.scaling))
+    if parse_cl_args:
+        if cfg.args['pulse_scaling'] > 0.0:
+            p_gen.scaling = cfg.args['pulse_scaling']
+            print("p_gen.scaling = {} from command line".format(p_gen.scaling))
 
     # Create the Optimiser instance
     if cfg.optim_method is None:
