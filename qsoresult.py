@@ -308,6 +308,8 @@ class MultiRepResult(Result):
         self.results.append(repres)
         self.sorted = False
 
+        return repres
+
     def combine(self, other, sort=True):
         """ Combine this MultiRepResult with another"""
         self.add_results(other)

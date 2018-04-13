@@ -25,10 +25,10 @@ def round_sigfigs(num, sig_figs):
         return 0  # Can't take the log of 0
 
 def run_qso_sims(optim, num_reps=None, verbosity=None,
-                     save_results=None, scen_idx=None, reps_idx=None,
-                     num_threads=None,
-                     num_tslots=None, evo_time=None,
-                     fid_err_targ=None, numer_acc=None):
+                 report_phys_params=None, save_results=None,
+                 scen_idx=None, reps_idx=None, num_threads=None,
+                 num_tslots=None, evo_time=None,
+                 fid_err_targ=None, numer_acc=None):
     """
     Runs the qso optimistion for the specified number of reps
     (taken from optim.cfg if 0). The results are analysed and returned
@@ -50,6 +50,7 @@ def run_qso_sims(optim, num_reps=None, verbosity=None,
 
     if num_reps is None: num_reps = cfg.num_reps
     if verbosity is None: verbosity = cfg.verbosity
+    if report_phys_params is None: report_phys_params = cfg.report_phys_params
     if save_results is None: save_results = cfg.save_results
     if num_threads is None: num_threads = cfg.num_threads
     if num_tslots is not None:
@@ -186,7 +187,8 @@ def run_qso_sims(optim, num_reps=None, verbosity=None,
             optres.optim_dump = optim.dump
             optres.dyn_dump = dyn.dump
 
-            multires.add_optim_result(optres)
+            repres = multires.add_optim_result(optres)
+
 
             if cfg.save_final_amps:
                 pulsefile = "final_amps_{}_rep{}.{}".format(cfg_str, k+1,
@@ -220,7 +222,11 @@ def run_qso_sims(optim, num_reps=None, verbosity=None,
             if optres.dyn_dump:
                 if verbosity > 0: lfh.write("Dynamics dump saved\n")
                 optres.dyn_dump.writeout()
-            del(optres)
+
+            if cfg.keep_optim_result:
+                repres.optim_result = optres
+            else:
+                del(optres)
 
     except KeyboardInterrupt as e:
         lfh.write("\nProcessing interrupted\n")
@@ -246,7 +252,8 @@ def run_qso_sims(optim, num_reps=None, verbosity=None,
         multires.write_results(lfh)
         # Print very short summary
         multires.report_analysis(f=lfh)
-        qso.print_phys_params(optim, f=lfh)
+        if report_phys_params:
+            qso.print_phys_params(optim, f=lfh)
 
     if not base_log:
         lfh.close()
@@ -280,11 +287,11 @@ def get_mp_params(num_reps, num_cpus, lfh=sys.stdout, verbosity=0):
             lfh.write("Will run {} reps on {} processes\n".format(
                         reps_per_proc, num_procs))
         else:
-            lfh.write("Will {} reps on process 1 "
+            lfh.write("Will run {} reps on process 1 "
                         "and {} on another {} processes\n".format(
                         reps_per_proc + reps_per_proc_rem, reps_per_proc,
                         num_procs-1))
-        lfh.write("Will uses {} threads per process\n".format(
+        lfh.write("Will use {} threads per process\n".format(
                                                 threads_per_proc))
 
     return num_procs, reps_per_proc, reps_per_proc_rem, threads_per_proc
@@ -305,16 +312,17 @@ def get_rep_task_kwargs_list(def_kwargs, num_procs, reps_per_proc,
         task_kwargs['reps_idx'] = reps_idx
         task_kwargs['num_reps'] = reps_this_proc
         task_kwargs['num_threads'] = threads_per_proc
-        lfh.write("Will start reps_idx {} for {} reps\n".format(reps_idx,
-                                      reps_this_proc))
+        if verbosity > 0:
+            lfh.write("Will start reps_idx {} for {} reps\n".format(reps_idx,
+                                          reps_this_proc))
         task_kwargs_list.append(task_kwargs)
         reps_this_proc = reps_per_proc
 
     return task_kwargs_list
 
 def run_qso_sims_mp(optim, lfh=sys.stdout, num_reps=None, verbosity=None,
-                     save_results=None, num_cpus=None,
-                     write_anal=True):
+                    report_phys_params=None, save_results=None, num_cpus=None,
+                    write_anal=True):
     """
     Run the QSO simulations using multiprocessing
     """
@@ -323,8 +331,8 @@ def run_qso_sims_mp(optim, lfh=sys.stdout, num_reps=None, verbosity=None,
     if num_cpus is None: num_cpus = cfg.num_cpus
     if num_reps is None: num_reps = cfg.num_reps
     if verbosity is None: verbosity = cfg.verbosity
+    if report_phys_params is None: report_phys_params = cfg.report_phys_params
     if save_results is None: save_results = cfg.save_results
-
 
     def_task_kwargs = {'verbosity':verbosity, 'save_results':save_results}
 
@@ -393,7 +401,8 @@ def run_qso_sims_mp(optim, lfh=sys.stdout, num_reps=None, verbosity=None,
         all_res.write_results(lfh)
         # Print very short summary
         all_res.report_analysis(f=lfh)
-        qso.print_phys_params(optim, f=lfh)
+        if report_phys_params:
+            qso.print_phys_params(optim, f=lfh)
 
     if write_anal:
         fname = "collate_{}.{}".format(cfg_str, out_file_ext)
@@ -407,7 +416,8 @@ def run_qso_sims_mp(optim, lfh=sys.stdout, num_reps=None, verbosity=None,
     return all_res
 
 def run_qso_sims_tslot_range(optim, lfh=sys.stdout, verbosity=None,
-                     save_results=None, num_cpus=None):
+                             report_phys_params=None,
+                             save_results=None, num_cpus=None):
     """
     Run the QSO simulations using multiprocessing
     for a range of num_tslots
@@ -417,6 +427,7 @@ def run_qso_sims_tslot_range(optim, lfh=sys.stdout, verbosity=None,
 
     if num_cpus is None: num_cpus = cfg.num_cpus
     if verbosity is None: verbosity = cfg.verbosity
+    if report_phys_params is None: report_phys_params = cfg.report_phys_params
     if save_results is None: save_results = cfg.save_results
 
     if len(dyn.num_tslots_list) > 0:
@@ -525,7 +536,7 @@ def run_qso_sims_tslot_range(optim, lfh=sys.stdout, verbosity=None,
 
     clf.close()
     cbf.close()
-    if cfg.verbosity > 0:
+    if verbosity > 0:
         lfh.write("Analysis saved to:\n{}\n".format(coll_fpath))
         lfh.write("Results saved to:\n{}\n".format(comb_fpath))
         lfh.write("All num_tslot scenarios complete\n")
@@ -533,10 +544,12 @@ def run_qso_sims_tslot_range(optim, lfh=sys.stdout, verbosity=None,
         all_res.write_results(inc_opt_attribs=True, f=lfh)
         # Print very short summary
         all_res.report_analysis(f=lfh)
-        qso.print_phys_params(optim, f=lfh)
+        if report_phys_params:
+            qso.print_phys_params(optim, f=lfh)
 
 def run_qso_sims_numer_acc_limit(optim, lfh=sys.stdout, verbosity=None,
-                     save_results=None, num_cpus=None):
+                                 report_phys_params=None,
+                                 save_results=None, num_cpus=None):
     """
     Run the QSO simulations using multiprocessing
     Looking to get a spread of results in between the no affect
@@ -549,6 +562,7 @@ def run_qso_sims_numer_acc_limit(optim, lfh=sys.stdout, verbosity=None,
 
     if num_cpus is None: num_cpus = cfg.num_cpus
     if verbosity is None: verbosity = cfg.verbosity
+    if report_phys_params is None: report_phys_params = cfg.report_phys_params
     if save_results is None: save_results = cfg.save_results
 
     cfg_str = qso.get_cfg_str(optim)
@@ -815,4 +829,5 @@ def run_qso_sims_numer_acc_limit(optim, lfh=sys.stdout, verbosity=None,
             all_res.write_results(f=lfh)
             # Print very short summary
             all_res.report_analysis(f=lfh)
-        qso.print_phys_params(optim, f=lfh)
+        if report_phys_params:
+            qso.print_phys_params(optim, f=lfh)

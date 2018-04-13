@@ -28,9 +28,11 @@ def round_sigfigs(num, sig_figs):
     else:
         return 0  # Can't take the log of 0
 
-
+#data_dir = "output"
 data_dir = "example_output"
 result_subdir = "ising_chain-3q-nal"
+#data_dir = "output/optim_CNOT"
+#result_subdir = "nal"
 #set comb_coll_fname=None to collate separately
 comb_coll_fname = None
 #result_subdir = "5qubit-chain-ising_equal-xy_ctrl-cNOT1-fet1e-1-na2e-2"
@@ -52,22 +54,6 @@ res_dir = os.path.join(data_dir, result_subdir)
 print("Results dir:\n{}".format(res_dir))
 if not os.path.isdir(res_dir):
     raise RuntimeError("Results dir not valid")
-
-# First look for a parameter file
-param_pat = os.path.join(res_dir, param_file_pat)
-if verbosity > 0:
-    print("Looking for parameter file matching:\n{}".format(param_pat))
-files = glob.glob(param_pat)
-n_files = len(files)
-if n_files == 0:
-    print("NO PARAMETER FILES FOUND!")
-    raise RuntimeError("No parameter file")
-
-print("Loading configuration from:\n{}".format(files[0]))
-optim = qsoconfig.gen_config(files[0])
-dyn = optim.dynamics
-tc = optim.termination_conditions
-fid_comp = dyn.fid_computer
 
 # look for files to read existing results
 coll_na = {}
@@ -112,10 +98,31 @@ if os.path.isfile(interp_fpath):
     if verbosity > 0:
         print("Loading interp params from:\n{}\n".format(interp_fpath))
     data = np.loadtxt(interp_fpath)
-    na_lb = data[0]
-    na_ub = data[1]
-    succ_thresh = data[2]
+    # Note num_qubits only added to the file 2018-04-13
+    # interp files from before that will need number of qubits inserting
+    nq = int(data[0])
+    na_lb = data[1]
+    na_ub = data[2]
+    try:
+        succ_thresh = data[3]
+    except:
+        succ_thresh = 0.5
 else:
+    # No interp results file, look for a parameter file
+    param_pat = os.path.join(res_dir, param_file_pat)
+    if verbosity > 0:
+        print("Looking for parameter file matching:\n{}".format(param_pat))
+    files = glob.glob(param_pat)
+    n_files = len(files)
+    if n_files == 0:
+        print("NO PARAMETER FILES FOUND!")
+        raise RuntimeError("No parameter file")
+    print("Loading configuration from:\n{}".format(files[0]))
+    optim = qsoconfig.gen_config(files[0])
+    dyn = optim.dynamics
+    tc = optim.termination_conditions
+    fid_comp = optim.dynamics.fid_computer
+    nq = dyn.num_qubits
     if not fid_comp.numer_acc_exact:
         fid_comp.st_numer_acc = round_sigfigs(
                 fid_comp.st_numer_acc*fid_err_targ/tc.fid_err_targ, 6)
@@ -148,8 +155,7 @@ while not exit_all:
     ax1.vlines([na_lb, na_ub], 0, 1)
     ax1.set_xlim(0, na_lim)
     ax1.set_title("Numerical accuracy limit for {} "
-                 "qubits fid_err_targ {}".format(dyn.num_qubits,
-                                             fid_err_targ))
+                 "qubits fid_err_targ {}".format(nq, fid_err_targ))
     ax1.set_xlabel("numerical accuracy")
     ax1.set_ylabel("pulseoptim success proportion")
 
@@ -160,13 +166,12 @@ while not exit_all:
 
     ax2.set_xlim(0, na_lim)
     ax2.set_title("Iterations for {} "
-                 "qubits fid_err_targ {}".format(dyn.num_qubits,
-                                             fid_err_targ))
+                 "qubits fid_err_targ {}".format(nq, fid_err_targ))
     ax2.set_xlabel("numerical accuracy")
     ax2.set_ylabel("num iter")
 
     num_sel = len(sel_na)
-    interp_data = [na_lb, na_ub, succ_thresh, fid_err_targ, num_sel]
+    interp_data = [nq, na_lb, na_ub, succ_thresh, fid_err_targ, num_sel]
 
     # Note we are doing this inverted,
     # as we are interested in the error in na to succ_prop
@@ -189,14 +194,6 @@ while not exit_all:
         fitliney = [0, 1]
         na_thresh = succ_thresh*m + c
         na_thresh_err = np.sqrt(m_var*succ_thresh**2 + c_var)
-#        # get the first numer_acc after the threshold
-#        first_thresh_na = na_arr[na_arr > na_thresh][0]
-#        print("First numer_acc after thresh: {}".format(first_thresh_na))
-#        na_res = coll_na[first_thresh_na]
-#        mean_iter = na_res.mean_iter_primary_success
-#        std_iter = na_res.std_iter_primary_success
-#        print("Num iter for numer_acc after thresh {} +/- {}".format(
-#                  mean_iter, std_iter))
 
         # Save interp data
         interp_data += [na_thresh, na_thresh_err]

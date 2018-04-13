@@ -162,6 +162,8 @@ def gen_optim_config(param_fname=None, parse_cl_args=True):
     cfg.output_dir = "~quant_self_optim/output/default"
     # Used as part of output file name.
     cfg.output_base_name = 'general'
+    # If True then the physics parameters are included in the output
+    cfg.report_phys_params = True
     # True means print messages saved in output file as well as std_out
     cfg.double_print = True
     cfg.output_files = True
@@ -188,7 +190,11 @@ def gen_optim_config(param_fname=None, parse_cl_args=True):
     # stats_type options: standard|local
     # local can be used with the pure_Choi_local FidelityComputer
     cfg.stats_type = 'standard'
+    # If True then stats for each pulse optimisation will be reported
     cfg.report_stats = True
+    # If True then the qutip OptimResult object is kept for each pulse
+    # optimisation. By default they are not, so as to save RAM.
+    cfg.keep_optim_result = False
     # Save pulse amplitdues to file (or not)
     cfg.save_initial_amps = False
     cfg.save_final_amps = False
