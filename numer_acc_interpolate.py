@@ -16,9 +16,8 @@ import glob
 #import re
 #import datetime
 #import shutil
-import qsoconfig, qso
+import qsoconfig
 import qsoresult
-from scipy.stats import linregress
 
 def round_sigfigs(num, sig_figs):
     """Round to specified number of sigfigs."""
