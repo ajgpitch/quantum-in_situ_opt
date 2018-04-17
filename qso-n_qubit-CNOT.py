@@ -1,15 +1,40 @@
 """
-Script for running simulations of in-situ quantum gate optimisation
-Specifically the optimisation of
+Script for running simulations of in-situ quantum gate optimisation.
+Specifically the optimisation of a CNOT gate on one pair of qubits, which are
+typically part of a larger system, which can be configured in a variety of
+topologies and with different interaction types.
+
+QuTiP (qutip.org), along with its prequistes, is required to run this script.
+
+The script can be used to generate the results from
+https://arxiv.org/abs/1701.01723
 
 The script loads its configuration from the local file:
     params-quant_self_opt.ini
 These can also be overridden in some cases with cmdline args
 The majority of the code is located in modules.
 See qsoconfig.py for descriptions of the config parameters
+A different parameter file can be specified using the -p cmdline option
 
-The script can be used to generate the results from
-https://arxiv.org/abs/1701.01723
+There are three options for the objective of the script.
+The option can be chosen by setting the optimconfig.mp_opt parameter,
+so called because Python multiprocessing is used to spread the optimisation
+repeats and or scenarios over the specified available resources.
+1. mp_opt = <blank>
+    This simply repeats the control pulse optimisation the number of times
+    specified by num_reps. The number of successful repeats and averaged
+    statisics are reported.
+2. mp_opt = num_tslots
+    A number of different num_tslots scenarios will be tried. This is either
+    based on a list or range parameters. The specified num_reps will be
+    completed for each scenario.
+3. mp_opt = numer_acc_limit
+
+
+For all options a results file will be produced by each process that
+performs one or more repetitions of the pulse optimisation. All the repetition
+results will also be combined in to one file. Another file will contain
+collated results, grouped appropriately, with averaged statistics.
 """
 
 # started 2015 Oct 6

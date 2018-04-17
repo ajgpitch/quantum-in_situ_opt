@@ -134,8 +134,8 @@ else:
 
 
 fig = plt.figure(figsize=(16,6))
+# This turns on interactive plotting
 plt.ion()
-#plt.show()
 
 exit_all = False
 while not exit_all:
@@ -183,7 +183,8 @@ while not exit_all:
         c_var = V[1][1]
         interpsp = True
     except:
-        print("sp polyfit failed: {}".format(sys.exc_info()[0]))
+        print("success proportion polyfit failed: {}".format(sys.exc_info()[0]))
+        print("Try changing the result bounds")
         interpsp = False
 
     if interpsp:
@@ -193,13 +194,16 @@ while not exit_all:
         fitliney = [0, 1]
         na_thresh = succ_thresh*m + c
         na_thresh_err = np.sqrt(m_var*succ_thresh**2 + c_var)
+        na_thresh_msg = '{}% thresh={:0.3e} +/- {:0.2e}'.format(
+                            succ_thresh*100, na_thresh, na_thresh_err)
+        print("Numerical accuracy threshold calculated:\n"
+              + na_thresh_msg + "\n")
 
         # Save interp data
         interp_data += [na_thresh, na_thresh_err]
         ax1.plot(fitlinex, fitliney, label='lin fit')
         ax1.errorbar(na_thresh, succ_thresh, xerr=na_thresh_err,
-                    label='{}% thresh={:0.3e} +/- {:0.2e}'.format(
-                            succ_thresh*100, na_thresh, na_thresh_err))
+                    label=na_thresh_msg)
         ax1.legend()
 
         try:
@@ -208,11 +212,12 @@ while not exit_all:
             c = p[1]
             m_var = V[0][0]
             c_var = V[1][1]
-            print("interpni: m {}, c{}".format(m, c))
-            print("interpni variance: m {}, c{}".format(m_var, c_var))
+            if verbosity > 1:
+                print("interpni: m {}, c{}".format(m, c))
+                print("interpni variance: m {}, c{}".format(m_var, c_var))
             interpni = True
         except:
-            print("ni polyfit failed: {}".format(sys.exc_info()[0]))
+            print("num iter polyfit failed: {}".format(sys.exc_info()[0]))
             interpni = False
 
         if interpni:
@@ -226,19 +231,23 @@ while not exit_all:
             na_thresh_iter = na_thresh*m + c
             iter_err = np.sqrt(m_var*na_thresh**2 + c_var)
             comb_err = np.sqrt((m*na_thresh_err)**2 + iter_err**2)
-
+            na_thresh_iter_msg ='na_thresh_iter={:0.3e} +/- {:0.2e}'.format(
+                                    na_thresh_iter, comb_err)
+            print("Mean interations and combined error for numerical accuracy "
+                  "threshold calculated:\n" + na_thresh_iter_msg + "\n")
             # Save interp data
             interp_data += [na_thresh_iter, iter_err, comb_err]
             ax2.plot(fitlinex, fitliney, label='lin fit')
             ax2.errorbar(na_thresh, na_thresh_iter, yerr=iter_err,
                         label='na_thresh_iter err')
             ax2.errorbar(na_thresh, na_thresh_iter, yerr=comb_err,
-                        label='na_thresh_iter={:0.3e} +/- {:0.2e}'.format(
-                                na_thresh_iter, comb_err))
+                        label=na_thresh_iter_msg)
             ax2.legend(loc=0)
 
         plt.draw()
 
+    print("Numerical accuracy result bounds: lower {},"
+          " upper {}".format(na_lb, na_ub))
     np.savetxt(interp_fpath, interp_data, fmt='%.5e')
 
 

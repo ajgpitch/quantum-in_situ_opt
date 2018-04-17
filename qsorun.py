@@ -30,9 +30,20 @@ def run_qso_sims(optim, num_reps=None, verbosity=None,
                  num_tslots=None, evo_time=None,
                  fid_err_targ=None, numer_acc=None):
     """
-    Runs the qso optimistion for the specified number of reps
-    (taken from optim.cfg if 0). The results are analysed and returned
-    in a result object
+    Attempts a pulse optimisation for specified number of repititions
+    (num_reps). Where kwargs are not passed the value is taken from the
+    configuration, except scen_idx and reps_idx which are only used in
+    output file names.
+
+    This function is called from within the main top-level functions
+    of this module.
+
+    Returns
+    -------
+    multires : MultiRepResult
+        Containing RepResult object for each repetition.
+        The analysis is run on multires, so the averaged statics are
+        available as attributes.
     """
 
     #print("run_qso_sims\nnum_reps {}, job_idx {}".format(num_reps, job_idx))
@@ -551,9 +562,51 @@ def run_qso_sims_numer_acc_limit(optim, lfh=sys.stdout, verbosity=None,
                                  report_phys_params=None,
                                  save_results=None, num_cpus=None):
     """
-    Run the QSO simulations using multiprocessing
+    Perform an automatic search for the numerical accuracy threshold.
     Looking to get a spread of results in between the no affect
-    from numer_acc and numer_acc too large for any pulse optim
+    from numerical accuracy parameter (numer_acc) and numer_acc too large for
+    any pulse optimisation success.
+
+    In each scenario different numerical accuracies are tried
+    with the specified number of repetitions (num_reps). The result of interest
+    being the proportion of pulse optimisations successfully finding the target
+    within the the fidelity target, referred to as the success proportion
+    (succ_prop).
+
+    It will start from an estimate of the lower (na_lb) and upper (na_ub)
+    boundaries for the numer_acc (see fidcomp parameters). The boundaries
+    will be pushed until there is a scenario falling on each side of the
+    boundaries, based on the succ_prop of the scenario.
+    That is the na_lb is the highest numer_acc that results in a succ_prop
+    greater than success_prop_uthresh. Similarly, the na_ub is the
+    lowest numer_acc value that results in succ_prop less than
+    success_prop_lthresh. The na_lb is halved until
+    succ_prop > success_prop_uthresh. The na_ub is doubled until
+    succ_prop < success_prop_lthresh.
+
+    Once some boundaries have been located the search looks to add succ_prop
+    results for an even spread of numer_acc scenarios between the
+    bounds. This is achieved by bisecting the largest numer_acc gaps between
+    scenarios. This may also extend the bounds. The process will continue
+    until the number of scenarios tested reaches optimconfig.max_mp_scens.
+
+    If there is already a collation file in the results output directory,
+    then this will be loaded as the current status for the search, effectively
+    meaning that it continues where it left off. This is designed such that
+    if processing is interrupted, then it can be restarted.
+    Note then that if this is called again with the same configuration,
+    with a finite max_mp_scen, after having completed successfully,
+    no further scenarios will be attempted.
+
+    Python multiprocessing is used to share the repetitions and or scenarios
+    across the specified number of cpus (num_cpus). If num_cpus is less than
+    2*num_reps then only one scenario will be run at a time, as the repetitions
+    will be split across the availble cpus. Otherwise it is possible that
+    num_cpus // num_reps will be run concurrently. For efficient use of
+    resources it only makes sense to specifiy num_cpus < num_reps or
+    num_cpus = n*num_reps where n is a positive integer. Practically, at least
+    50 reps are required for a reliable outcome. So unless a large cluster
+    is in use, then one scenario at a time is all that happen.
     """
     cfg = optim.config
     tc = optim.termination_conditions
