@@ -275,8 +275,11 @@ def run_qso_sims(optim, num_reps=None, verbosity=None,
 def get_mp_params(num_reps, num_cpus, lfh=sys.stdout, verbosity=0):
     """
     Determine the multiprocessing parameters
-    This will either specify a number of reps per process
-    or a number of threads per rep
+    This will determine how to distribute the repetitions across processes.
+    If there are more reps than cpus, then the reps will be distributed
+    across the cpus.
+    If there are more cpus than reps, then multiple threads can be used
+    for each process.
     """
 
     threads_per_proc = 1
@@ -312,8 +315,7 @@ def get_rep_task_kwargs_list(def_kwargs, num_procs, reps_per_proc,
                              lfh=sys.stdout, verbosity=0):
 
     """
-    Get list of kwargs for the multiprocessing.
-    Set the number of threads for mkl
+    Get list of kwargs for the multiprocessing task
     """
 
     task_kwargs_list = []
@@ -335,7 +337,19 @@ def run_qso_sims_mp(optim, lfh=sys.stdout, num_reps=None, verbosity=None,
                     report_phys_params=None, save_results=None, num_cpus=None,
                     write_anal=True):
     """
-    Run the QSO simulations using multiprocessing
+    Run the QSO simulations using multiprocessing.
+    Based on the number of cpus (num_cpus), either specified or from the
+    config, splits the pulse optimisation repetitions across the cpus.
+    This could be multiple reps for each cpu or multiple threads per rep.
+    All reps are completed with the same optimisation parameters.
+    All processes run the run_qso_sims function.
+
+    Returns
+    -------
+    allres : MultiRepResult
+        Containing RepResult object for each repetition.
+        The analysis is run on allres, so the averaged statics are
+        available as attributes.
     """
     cfg = optim.config
 
@@ -430,8 +444,27 @@ def run_qso_sims_tslot_range(optim, lfh=sys.stdout, verbosity=None,
                              report_phys_params=None,
                              save_results=None, num_cpus=None):
     """
-    Run the QSO simulations using multiprocessing
-    for a range of num_tslots
+    Run the QSO simulations using multiprocessing for a variety of num_tslots.
+    The num_tslots values are either taken from as a list from
+    optim.dynamics.num_tslots_list or a range is constructed from the
+    st_num_tslots, d_num_tslots and num_num_tslots attribs of optim.dynamics.
+    Each set of repetitions for a particlar num_tslots is a scenario.
+
+    Python multiprocessing is used to share the repetitions and or scenarios
+    across the specified number of cpus (num_cpus).
+    If num_cpus is less than the number of scenarios, then one cpu will
+    allocated per scenario.
+    If num_cpus greater than the number of scenarios,
+    then multiple cpus will be allocated to scenarios,
+    meaning that repetitions as well as scenarios will be run in parallel.
+
+    Nothing is returned from this function.
+    A results file will be produced by each process that
+    performs one or more repetitions of the pulse optimisation.
+    All the repetition results will also be combined into one file.
+    The main output of this function is a collated results file called
+    "nts_collate_*". This will be grouped by scenario,
+    with averaged statistics.
     """
     cfg = optim.config
     dyn = optim.dynamics
@@ -449,7 +482,6 @@ def run_qso_sims_tslot_range(optim, lfh=sys.stdout, verbosity=None,
                                 dyn.d_num_tslots)
 
     num_scen = len(nts_list)
-    def_task_kwargs = {'verbosity':verbosity, 'save_results':save_results}
     if num_cpus > num_scen:
         cpus_per_scen = num_cpus // num_scen
         cpus_per_scen_rem = num_cpus % num_scen
@@ -465,6 +497,8 @@ def run_qso_sims_tslot_range(optim, lfh=sys.stdout, verbosity=None,
                 "and {} scenarios on {} cpus\n".format(
                     cpus_per_scen + cpus_per_scen_rem, num_scen-1,
                     cpus_per_scen))
+
+    def_task_kwargs = {'verbosity':verbosity, 'save_results':save_results}
     try:
         pool = Pool(processes=num_cpus)
         async_res = []
@@ -607,6 +641,14 @@ def run_qso_sims_numer_acc_limit(optim, lfh=sys.stdout, verbosity=None,
     num_cpus = n*num_reps where n is a positive integer. Practically, at least
     50 reps are required for a reliable outcome. So unless a large cluster
     is in use, then one scenario at a time is all that happen.
+
+    Nothing is returned from this function.
+    A results file will be produced by each process that
+    performs one or more repetitions of the pulse optimisation.
+    All the repetition results will also be combined into one file.
+    The main output of this function is a collated results file called
+    "nal_collate_*". This will be grouped by scenario,
+    with averaged statistics.
     """
     cfg = optim.config
     tc = optim.termination_conditions
