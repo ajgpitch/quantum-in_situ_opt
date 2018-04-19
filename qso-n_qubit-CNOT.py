@@ -20,6 +20,7 @@ There are three options for the objective of the script.
 The option can be chosen by setting the optimconfig.mp_opt parameter,
 so called because Python multiprocessing is used to spread the optimisation
 repeats and or scenarios over the specified available resources.
+More details are given in the qsorun function docstrings.
 1. mp_opt = <blank>
     This simply repeats the control pulse optimisation the number of times
     specified by num_reps. The number of successful repeats and averaged
@@ -29,7 +30,12 @@ repeats and or scenarios over the specified available resources.
     based on a list or range parameters. The specified num_reps will be
     completed for each scenario.
 3. mp_opt = numer_acc_limit
-
+    This is an automated search for the data required to determine
+    the numerical accuracy threshold. It tries to maximise the number
+    of data points for successful pulse optimisation proportion for
+    numerical accuracy values.
+    These data can be analysed using the numer_acc_interpolate.py script
+    or the interpolate_num_acc_thresh.ipynb notebook
 
 For all options a results file will be produced by each process that
 performs one or more repetitions of the pulse optimisation. All the repetition

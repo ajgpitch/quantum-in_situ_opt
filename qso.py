@@ -4,8 +4,9 @@ Created on Mon Aug  1 16:40:43 2016
 
 Alexander Pitchford
 
-Generic functions for the quantum self optimser
-
+Generic functions for the quantum self optimisation.
+In particular there are the functions that build the dynamics generators
+and targets.
 """
 import sys
 import numpy as np
@@ -16,6 +17,7 @@ from qutip import Qobj, identity, sigmax, sigmay, sigmaz, tensor
 
 def get_cfg_str(optim, full=False, num_tslots=None, evo_time=None,
                      fid_err_targ=None, numer_acc=None):
+    """Build a string to be included in file names"""
     cfg = optim.config
     dyn = optim.dynamics
     tc = optim.termination_conditions
@@ -44,7 +46,12 @@ def get_cfg_str(optim, full=False, num_tslots=None, evo_time=None,
     return cfg_str
 
 def get_out_file_ext(data_file_ext, job_id=None, scen_idx=None, reps_idx=None):
-
+    """
+    Build a multi part file extension for use with output files.
+    This is particular useful when using an external job scheduler,
+    to ensure that file names are unique and can be linked to processing
+    records.
+    """
     out_file_ext = data_file_ext
     if reps_idx is not None:
         out_file_ext = "r{}.{}".format(reps_idx, out_file_ext)
@@ -278,7 +285,7 @@ def get_ctrls(dyn):
     Returns
     -------
     Full list of control operators
-    Lists of indexs to the Sx, Sy, Sz controls respectively
+    Lists of indexes to the Sx, Sy, Sz controls respectively
     """
 
     Sx = sigmax()

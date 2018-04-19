@@ -1,17 +1,10 @@
 """
-Created 2015 Nov 3
-By Ben Dive
-
-Having a look at how the quantum self optimisation code can be investigated
-numerically. The custom fidelity and fidelity gradient functions are part
-of custom 'fidcomp' classes, which lives here.
-
-Ported to use the branch of QuTiP that uses quantum objects throughout the
-optimisation.
+Custom FidelityComputer class for computing global and local Choi fidelities
 """
 
-"""Look at "Calc for num.tex" for explanation of what the maths I'm
-   doing here means"""
+# started 2015 Nov 3 by Ben Dive
+# this version 2018 April 6
+# Authors: Ben Dive & Alexander Pitchford
 
 #Python Core
 import numpy as np
@@ -28,36 +21,53 @@ from ptrace import partial_trace, calc_perm
 
 from qsostats import StatsFidCompLocal
 
-"""Built in functions only round to nearest decimal place
-want a function that can round to a given accuracy"""
+
 def my_round(val, numer_acc):
+    """
+    Round value to specified numerical accuracy.
+
+    Built in functions only round to nearest decimal place
+    want a function that can round to a given accuracy.
+    """
     if numer_acc == 0:
         return val
     else:
         return np.round(val / numer_acc) * numer_acc
 
 
-"""Uses the choi fidelity for a unitary target and unitary evolution.
-Equivalent to the modsquare of the usual gate fidelity."""
-class FidCompPureChoiGlobal(fidcomp.FidCompUnitary):
-    """Optional fid_params for this class
-    'numer_acc' : +1 gives significant figures}
 
-    Phase options are no longer important, this was the neatest was of reitring
-    them I could find. Keeping the self.dimensional_norm  as it is, just use the
-    square of it for normalisation.
+class FidCompPureChoiGlobal(fidcomp.FidCompUnitary):
+    """
+    Uses the choi fidelity for a unitary target and unitary evolution.
+    Equivalent to the modsquare of the usual gate fidelity.
+
+    Attributes
+    ----------
+    numer_acc  : float
+        Numerical accuracy. Fidelity will be rounded to this level
+        The default 0 means no rounding
     """
     def reset(self):
         self.conversion_time = 0
-        self.numer_acc = 0 # 0 = no rounding, as defined above
+        self.numer_acc = 0
         fidcomp.FidCompUnitary.reset(self)
 
     def set_phase_option(self, phase_option=None):
+        """
+        Set normalisation functions to
+        Phase options are no longer important, this was the neatest was of reitring
+        them I could find. Keeping the self.dimensional_norm  as it is, just use the
+        square of it for normalisation.
+        """
         self.fid_norm_func = self.choi_norm
         self.grad_norm_func = self.choi_norm_grad
 
-    """Rounding from finite numer_acc takes place here, for simplicity"""
+
     def choi_norm(self, A):
+        """
+        Normalise the fidelity based on target's matrix dimensions
+        Also apply the numerical accuracy rounding
+        """
         if isinstance(A, Qobj):
             norm = A.tr()
         elif isinstance(A, np.ndarray):
@@ -79,7 +89,7 @@ class FidCompPureChoiGlobal(fidcomp.FidCompUnitary):
         if not self.fidelity_prenorm_current:
             dyn = self.parent
             if self.log_level <= logging.DEBUG:
-                logger.debug("**** Computing custom fidelity ****")
+                logger.debug("**** Computing Choi fidelity ****")
             k = dyn.tslot_computer._get_timeslot_for_fidelity_calc()
             dyn.compute_evolution()
             """ **** CUSTOMISE this line below *****"""
@@ -87,7 +97,7 @@ class FidCompPureChoiGlobal(fidcomp.FidCompUnitary):
                 f_half = (dyn._onto_evo[k]*dyn._fwd_evo[k]).tr()
             else:
                 f_half = np.trace(dyn._onto_evo[k].dot(dyn._fwd_evo[k]))
-                
+
             #f_half = (dyn._fwd_evo[k] * dyn._onto_evo[k]).tr()
             #Writem this way to make it easier to generalise
             #to local estimator later
@@ -143,12 +153,12 @@ class FidCompPureChoiGlobal(fidcomp.FidCompUnitary):
                     f_half = np.trace(dyn._onto_evo[k].dot(dyn._fwd_evo[k]))
                     g_half = np.trace(
                                 owd_evo.dot(dyn.prop_grad[k, j]).dot(fwd_evo))
-                
+
                 g = g_half*np.conjugate(f_half) + np.conjugate(g_half)*f_half
-                
+
                 grad[k, j] = np.real(g)
                 """ **** END OF CUSTOMISATION ****"""
-                
+
         if dyn.stats is not None:
             dyn.stats.wall_time_gradient_compute += \
                 timeit.default_timer() - time_st
@@ -221,18 +231,18 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
             for k in range(sub_sys+1,self.num_sub_sys):
                 large_local_targ.append(identity(self.sub_dims[k]))
             large_local_targ = reduce(tensor, large_local_targ)
-           
+
             if dyn.oper_dtype == Qobj:
                 self.large_local_targs_dag.append(large_local_targ.dag())
             else:
                 self.large_local_targs_dag.append(
                     large_local_targ.dag().full())
-                    
+
         # Calculate the permutation matrices for the partial trace
         self.ptrace_perms = {}
         for sub_sys in range(self.num_sub_sys):
             self.ptrace_perms[sub_sys] = calc_perm(self.oper_dims, sub_sys)
-            
+
     """"
     **** AJGP 4Dec15
     **** set_phase_option has been removed ****
@@ -307,7 +317,7 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
                 else:
                     target_less_owd_evo = np.eye(self.full_dim)
                     #target_less_owd_evo_dims = [self.sub_dims, self.sub_dims]
-                
+
             fwd_evo = dyn._fwd_evo[k]
             owd_local_targs = self.compute_all_owd_local_target(target_less_owd_evo)
             for j in range(n_ctrls):
@@ -337,7 +347,7 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
             if perm is None:
                 perm = calc_perm(self.oper_dims, sel)
                 self.ptrace_perms[str(sel)] = perm
-        
+
         return partial_trace(sys, self.oper_dims, sel, perm=perm)[0]
 
     """New fidelity functions pass large arrays to each other,
@@ -354,7 +364,7 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
                 overlap = self.large_local_targs_dag[sub_sys] * fwd_evo
             else:
                 overlap = self.large_local_targs_dag[sub_sys].dot(fwd_evo)
-                
+
             surviving_systems = list(range(self.num_sub_sys))
             surviving_systems.remove(sub_sys)
             #Checks if there is only one sub-system
@@ -464,7 +474,7 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
             f_half = (dyn._fwd_evo[-1] * dyn.onto_evo_target).tr()
         else:
             f_half = np.trace(dyn._fwd_evo[-1].dot(dyn.onto_evo_target.full()))
-            
+
         f = np.real((f_half * np.conjugate(f_half))/(self.full_dim**2))
         #f_psu = np.abs((dyn._fwd_evo[-1]*dyn.onto_evo_target).tr())/self.full_dim
         #print("PSU infidelity: {}".format(1-f_psu))
