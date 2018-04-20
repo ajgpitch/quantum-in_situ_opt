@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Dec 16 13:33:02 2015
-
-Alexander Pitchford
-
-Customised Qtrl stats for local Choi fid
+Customised qutip.control stats for local Choi fid
 """
+
+# started 2015 Oct 6
+# this version 2018 April 6
+# Authors: Ben Dive & Alexander Pitchford
 
 import qutip.control.stats as stats
 

@@ -1,56 +1,39 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
+"""
+This is a modified version of the QuTiP partial trace.
+It supports dense matrix as input and output.
+It also separates the calculation of the permutation matrix,
+which is the costly part. This allows the re-use of the permutation
+matrix, which in the QSO optimisation is very frequent by the local
+Choi fidelity computer.
+"""
+
+# this version 2018 April 6
+# Author: Alexander Pitchford
+
+# Since this was developed a Cythonised version of ptrace has replaced
+# the version this was based upon. It is much faster, but does not support
+# dense matrices or perm re-use.
 
 __all__ = []
 
 import numpy as np
 import scipy.sparse as sp
 from qutip.sparse import sp_reshape
-  
+
 def partial_trace(rho_data, rho_dims, sel, perm=None):
     """Compute the partial trace of the matrix
-    
+
     Parameters
     ----------
     rho_data : csr_matrix or ndarray
         Matrix for which the partial trace will be computed
-        
+
     rho_dims : list
         Subsystem dimensions
-        
+
     sel : int/list
         An ``int`` or ``list`` of components to keep after partial trace.
-        
+
     perm : ndarray
         Optionally a pre computed permutation matrix can be provided
         This may be more efficient if the same partial trace (sel)
@@ -64,9 +47,9 @@ def partial_trace(rho_data, rho_dims, sel, perm=None):
     rho1_dims : list
         Subsystem dimensions for output matrix
     rho1_shape : tuple
-        Shape of output matrix  
+        Shape of output matrix
     """
-    
+
     #print("rho_dims {} (type: {})".format(rho_dims, type(rho_dims)))
     #print("sel {} (type: {})".format(sel, type(sel)))
     if isinstance(sel, int):
@@ -76,19 +59,19 @@ def partial_trace(rho_data, rho_dims, sel, perm=None):
 
     if (sel < 0).any() or (sel >= len(rho_dims[0])).any():
         raise TypeError("Invalid selection index in ptrace.")
-        
+
     sparse = sp.issparse(rho_data)
-    
+
     if np.prod(rho_dims[1]) == 1:
         rho_data = rho_data.dot(rho_data.T.conj())
 
-    rho1_dims = [np.asarray(rho_dims[0]).take(sel).tolist(), 
+    rho1_dims = [np.asarray(rho_dims[0]).take(sel).tolist(),
                 np.asarray(rho_dims[0]).take(sel).tolist()]
     rho1_shape = (np.prod(rho1_dims[0]), np.prod(rho1_dims[1]))
-    
+
     if perm is None:
         perm = calc_perm(rho_dims, sel, sparse=sparse)
-    
+
     if sparse:
         rhdata = perm * sp_reshape(rho_data, [np.prod(rho_dims[0])**2, 1])
         rhdata = rhdata.tolil().reshape(rho1_shape)
@@ -96,15 +79,15 @@ def partial_trace(rho_data, rho_dims, sel, perm=None):
     else:
         rho1_data = np.reshape(np.sum(np.reshape(
             rho_data.flatten()[perm.flatten()], perm.shape), 1), rho1_shape)
-             
+
     return rho1_data, rho1_dims, rho1_shape
-      
+
 def calc_perm(rho_dims, sel, sparse=False):
     """
     Calculate the permutation matrix.
     These are the indexes of the elemnts to be summed in the partial trace
     Each row holds the indexes to be summed for one element of the
-    selected operator(s)    
+    selected operator(s)
     """
     if isinstance(sel, int):
         sel = np.array([sel])
@@ -113,7 +96,7 @@ def calc_perm(rho_dims, sel, sparse=False):
 
     if (sel < 0).any() or (sel >= len(rho_dims[0])).any():
         raise TypeError("Invalid selection index in ptrace.")
-        
+
     drho = rho_dims[0]
     N = np.prod(drho)
     M = np.prod(np.asarray(drho).take(sel))
@@ -124,21 +107,21 @@ def calc_perm(rho_dims, sel, sparse=False):
     ilistrest = _select(rest, drho)
     indrest = _list2ind(ilistrest, drho)
     irest = (indrest - 1) * N + indrest - 2
-    
+
     perma = np.array(
                 [(irest + (indsel[int(np.floor(m / M))] - 1) * N +
                  indsel[int(np.mod(m, M))]).T[0]
                  for m in range(M**2)])
-                 
+
     if not sparse:
         return perma
-        
+
     perm = sp.lil_matrix((M**2, N**2))
     perm.rows = perma
     perm.data = np.ones_like(perm.rows)
-    
+
     return perm.tocsr()
-        
+
 def _list2ind(ilist, dims):
     """!
     Private function returning indicies

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Created: 2016-12-5
-
-Alexander Pitchford
-
-functions to run optimisations
+functions to run simulations of in-situ quantum gate optimisation.
 """
+
+# this version 2018 April 6
+# Authors: Ben Dive & Alexander Pitchford
+
 import sys
 import os
 import numpy as np

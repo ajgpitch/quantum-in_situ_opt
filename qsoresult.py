@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Created: 2016-12-5
-
-Alexander Pitchford
-
-quantum self optimiser result classes
+Quantum self optimiser result classes
+Objects for holding the results of pulse optimisations.
+They also handle the writing of results to file.
 """
+# this version 2018 April 6
+# Authors: Ben Dive & Alexander Pitchford
+
 import sys
 import numpy as np
 import datetime
@@ -43,6 +44,10 @@ def parse_time_delta(s):
     return td
 
 class Result(object):
+    """
+    Base class for other result classes
+    Mainly a container for the file reading and writing methods
+    """
 
     opt_file_attribs = [
         'evo_time', 'num_tslots',
@@ -115,8 +120,13 @@ class Result(object):
 
     @classmethod
     def load_from_txt(cls, f, has_header=True):
-        """Load results from the passed text file
-        Return as a list
+        """
+        Load results from the passed text file or file stream
+
+        Returns
+        -------
+        results : List of Result
+            Each Result will be a of the type of the calling class
         """
         closef = False
         if not hasattr(f, 'readline'):
@@ -479,4 +489,3 @@ class MultiRepResult(Result):
                 res.write_file_header(f)
                 inc_header = False
             res.write(f)
-
