@@ -1,4 +1,4 @@
-Simulation of *in situ* optimisation of qates in a quantum simulator
+Simulation of *in situ* optimisation of gates in a quantum simulator
 ====================================================================
 [Alexander Pitchford](http://github.com/ajgpitch), [Benjamin Dive](mailto:benjamindive@gmail.com)
 
@@ -32,7 +32,25 @@ Contents and usage
 Most of the code is organised into modules. There are then Python scripts and notebooks that can be run.
 
 [qso-n_qubit-CNOT script](qso-n_qubit-CNOT.py)
+This script will perform the optimisation of a CNOT on quantum system that can be configured in a wide variety of topologies and interaction types. Details of its actions and options are given in the main docstring of the file.
 
+It requires a parameter file. By default it will use [params-quant_self_opt.ini](params-quant_self_opt.ini). So to run it with the default parameters then, in a console, enter:
+
+```
+$ python qso-n_qubit-CNOT.py 
+```
+
+The parameters all link to object attributes. There are described where they are first set to their default values in [qsoconfig.py](qsoconfig.py).
+
+There are other parameter files provided. [qsoconfig.py](qsoconfig.py) is simply a copy of the default file. [params-4qubit-ring-heisen.ini](params-4qubit-ring-heisen.ini) is an example with different number of qubits, topology and iteraction type. To run with these parameters:
+
+```
+$ python qso-n_qubit-CNOT.py -p params-4qubit-ring-heisen.ini
+```
+
+[params-3qubit-chain-ising_equal-xy_ctrl-cNOT1-sens-nq3fet1e-2.ini](params-3qubit-chain-ising_equal-xy_ctrl-cNOT1-sens-nq3fet1e-2.ini) will run an automated search for the numerical accuracy threshold. This invloves many more pulse optimisations than they othe options and hence may take a long time to run on some systems. Again the `-p` option can be employed to use these parameters.
+
+Copies can be made of the parameter files and they can be selected using the `-p` option.
 
 
 
