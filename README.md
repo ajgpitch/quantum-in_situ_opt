@@ -10,7 +10,7 @@ Requirements
 ------------
 This code has primarily been developed and tested with Python 3.6 on a Linux operating system. There is no reason why it should not work on other OS or Python versions. However, the multiprocessing features will not work so well on MS Windows.
 
-[QuTiP](qutip.org) and its prerequistes are required to run most of the scripts and notebooks. It has been tested with version 4.2 has been. Older versions may work as well.
+[QuTiP](qutip.org) and its prerequistes are required to run most of the scripts and notebooks. It has been tested with version qutip 4.2. Older versions may work as well.
 
 [Jupyter notebook](jupyter.org) is required to run the notebooks.
 
