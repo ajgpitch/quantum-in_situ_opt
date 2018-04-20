@@ -6,7 +6,7 @@ topologies and with different interaction types.
 
 QuTiP (qutip.org), along with its prequistes, is required to run this script.
 
-The script can be used to generate the results from
+The script can be used to generate results from
 https://arxiv.org/abs/1701.01723
 
 The script loads its configuration from the local file:
