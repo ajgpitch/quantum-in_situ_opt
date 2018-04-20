@@ -31,7 +31,11 @@ Contents and usage
 ------------------
 Most of the code is organised into modules. There are then Python scripts and notebooks that can be run.
 
-[qso-n_qubit-CNOT script](qso-n_qubit-CNOT.py)
+Gate optimisation
++++++++++++++++++
+
+[qso-n_qubit-CNOT](qso-n_qubit-CNOT.py) script
+
 This script will perform the optimisation of a CNOT on quantum system that can be configured in a wide variety of topologies and interaction types. Details of its actions and options are given in the main docstring of the file.
 
 It requires a parameter file. By default it will use [params-quant_self_opt.ini](params-quant_self_opt.ini). So to run it with the default parameters then, in a console, enter:
@@ -51,6 +55,8 @@ $ python qso-n_qubit-CNOT.py -p params-4qubit-ring-heisen.ini
 [params-3qubit-chain-ising_equal-xy_ctrl-cNOT1-sens-nq3fet1e-2.ini](params-3qubit-chain-ising_equal-xy_ctrl-cNOT1-sens-nq3fet1e-2.ini) will run an automated search for the numerical accuracy threshold. This invloves many more pulse optimisations than they othe options and hence may take a long time to run on some systems. Again the `-p` option can be employed to use these parameters.
 
 Copies can be made of the parameter files and they can be selected using the `-p` option.
+
+The [optimize_CNOT.ipynb](optimize_CNOT.ipynb) notebook performs the same functions as the [qso-n_qubit-CNOT](qso-n_qubit-CNOT.py) script. It is in a [Jupyter notebook](jupyter.org) format. It does use parameter files, instead the object attributes are set directly in the notebook, and can be edited in there.
 
 
 
