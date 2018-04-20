@@ -6,21 +6,20 @@ Custom FidelityComputer class for computing global and local Choi fidelities
 # this version 2018 April 6
 # Authors: Ben Dive & Alexander Pitchford
 
-#Python Core
+# Python stardard libraries
 import numpy as np
 import timeit
 
 from functools import reduce
-#QuTiP
+# QuTiP
 import qutip.logging_utils as logging
 from qutip import Qobj, identity, tensor
 logger = logging.get_logger()
-#QuTiP control modules
+# QuTiP control modules
 import qutip.control.fidcomp as fidcomp
+# local imports
 from ptrace import partial_trace, calc_perm
-
 from qsostats import StatsFidCompLocal
-
 
 def my_round(val, numer_acc):
     """
@@ -33,7 +32,6 @@ def my_round(val, numer_acc):
         return val
     else:
         return np.round(val / numer_acc) * numer_acc
-
 
 
 class FidCompPureChoiGlobal(fidcomp.FidCompUnitary):
@@ -54,14 +52,13 @@ class FidCompPureChoiGlobal(fidcomp.FidCompUnitary):
 
     def set_phase_option(self, phase_option=None):
         """
-        Set normalisation functions to
-        Phase options are no longer important, this was the neatest was of reitring
-        them I could find. Keeping the self.dimensional_norm  as it is, just use the
+        Set normalisation functions
+        Phase options are not longer important
+        Keeping the self.dimensional_norm as it is, just use the
         square of it for normalisation.
         """
         self.fid_norm_func = self.choi_norm
         self.grad_norm_func = self.choi_norm_grad
-
 
     def choi_norm(self, A):
         """
@@ -92,7 +89,7 @@ class FidCompPureChoiGlobal(fidcomp.FidCompUnitary):
                 logger.debug("**** Computing Choi fidelity ****")
             k = dyn.tslot_computer._get_timeslot_for_fidelity_calc()
             dyn.compute_evolution()
-            """ **** CUSTOMISE this line below *****"""
+            # **** CUSTOMISATION starts here *****
             if dyn.oper_dtype == Qobj:
                 f_half = (dyn._onto_evo[k]*dyn._fwd_evo[k]).tr()
             else:
@@ -102,7 +99,7 @@ class FidCompPureChoiGlobal(fidcomp.FidCompUnitary):
             #Writem this way to make it easier to generalise
             #to local estimator later
             f = f_half * np.conjugate(f_half)
-            """**** END OF CUSTOMISATION ****"""
+            # **** END OF CUSTOMISATION ****
             self.fidelity_prenorm = f
             self.fidelity_prenorm_current = True
             if dyn.stats is not None:
@@ -124,7 +121,7 @@ class FidCompPureChoiGlobal(fidcomp.FidCompUnitary):
         n_ts = dyn.num_tslots
 
         if self.log_level <= logging.DEBUG:
-            logger.debug("**** Computing custom fidelity gradient ****")
+            logger.debug("**** Computing Choi fidelity gradient ****")
 
         # create n_ts x n_ctrls zero array for grad start point
         grad = np.zeros([n_ts, n_ctrls], dtype=complex)
@@ -138,12 +135,9 @@ class FidCompPureChoiGlobal(fidcomp.FidCompUnitary):
             for k in range(n_ts):
                 owd_evo = dyn._onto_evo[k+1]
                 fwd_evo = dyn._fwd_evo[k]
-                """ **** CUSTOMISE this line below *****"""
-                #Writen this way to make it easier to generalise
-#            	#to local estimator later
-#                g_half = (owd_evo * dyn.prop_grad[k, j] * fwd_evo).tr()
-#                #The same half fidelity as above,
-#                f_half = (fwd_evo * dyn._onto_evo[k]).tr()
+                # **** CUSTOMISE starts here *****
+                # Writen this way to make it easier to generalise
+                # to local estimator later
                 if dyn.oper_dtype == Qobj:
                     #to local estimator later
                     g_half = (owd_evo * dyn.prop_grad[k, j] * fwd_evo).tr()
@@ -157,7 +151,7 @@ class FidCompPureChoiGlobal(fidcomp.FidCompUnitary):
                 g = g_half*np.conjugate(f_half) + np.conjugate(g_half)*f_half
 
                 grad[k, j] = np.real(g)
-                """ **** END OF CUSTOMISATION ****"""
+                # **** END OF CUSTOMISATION ****
 
         if dyn.stats is not None:
             dyn.stats.wall_time_gradient_compute += \
@@ -166,25 +160,28 @@ class FidCompPureChoiGlobal(fidcomp.FidCompUnitary):
         return grad
 
 
-
-
-"""Calculates the estimator of the fidelity (and gradient) based on the
-sums of the local fidelities. This requires more inputs than just the
-global targets - it also requires the local targets.
-"""
-
 class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
-    """fid_params *required* for this class
-    'U_local_targs' :list of Qobj
-    'sub_dims' : dimensions of the above Qobj,
-    'num_sub_sys' : num_of the above Qobj
-    Optional fid_params for this class
-    'numer_acc' : number of decimal places kept}
+    """
+    Calculates the estimator of the fidelity (and gradient) based on the
+    sums of the local fidelities. This requires more inputs than just the
+    global targets - it also requires the local targets.
 
-    extra attributes are calculated from these below
+    Attributes
+    ----------
+    U_local_targs : list of Qobj
+        The local targets. This could be a gate on one of more qubits
+        or the identity on single qubits.
+
+    sub_dims : List of int
+        dimensions of the U_local_targs
+        Assumes all local targets are unitary ops (hence square matrices)
+    num_sub_sys : int
+        number of sub systems
+    numer_acc  : float
+        Numerical accuracy. Fidelity will be rounded to this level
+        The default 0 means no rounding
     """
 
-    """Doesn't appear to be enough to reset it..."""
     def reset(self):
         self.numer_acc = 0 #0 = no rounding (see definition at top)
         #Do in this order so apply_params over rules default
@@ -210,9 +207,12 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
 
     def init_comp(self):
         """
-        Convenient to have extra attributes calculated once,
-        this is best place to put them
+        Initialise the object after the configuration has been made,
+        before the optimisation starts.
         """
+        # Convenient to have extra attributes calculated once,
+        # this is best place to put them
+
         dyn = self.parent
         #and now the new code
         self.full_dim = np.product(self.sub_dims)
@@ -243,28 +243,14 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
         for sub_sys in range(self.num_sub_sys):
             self.ptrace_perms[sub_sys] = calc_perm(self.oper_dims, sub_sys)
 
-    """"
-    **** AJGP 4Dec15
-    **** set_phase_option has been removed ****
-    Moved these to reset
 
-    Phase options are no longer important, this was the neatest was of reitring
-    them I could find. Normalisation has also been got rid of as it has to be done
-    during the calculations rather than at the end.
-    """
-#    def set_phase_option(self, phase_option=None):
-#        self.fid_norm_func = self.already_normalised
-#        self.grad_norm_func = self.already_normalised
-#        #if phase_option is None:
-#        #    phase_option = self.phase_option
-
-    """Normalisation dealt with elsewhere, cannot be postponed till end"""
     def already_normalised(self, arg):
+        # Normalisation dealt with elsewhere, cannot be postponed till end
         return np.real(arg)
 
     def get_fidelity_prenorm(self):
         """
-        Gets the current fidelity value prior to normalisation
+        Get the current fidelity value prior to normalisation
         Note the gradient function uses this value
         The value is cached, because it is used in the gradient calculation
         """
@@ -350,10 +336,10 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
 
         return partial_trace(sys, self.oper_dims, sel, perm=perm)[0]
 
-    """New fidelity functions pass large arrays to each other,
-    but there are fewer Qobj conversations and fewer repetitions.
-    The whole thing should hopefully be faster. Option to calculate
-    .dag() directly, saves time for gradient"""
+    # New fidelity functions pass large arrays to each other,
+    # but there are fewer Qobj conversations and fewer repetitions.
+    # The whole thing should hopefully be faster. Option to calculate
+    # .dag() directly, saves time for gradient
     def compute_all_pseudo_fids(self, dag=False):
         dyn = self.parent
         time_st = timeit.default_timer()
@@ -372,18 +358,19 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
                 if not surviving_systems:
                     pseudo_fids.append(overlap.tr())
                 elif not dag:
-                    #print("compute_all_pseudo_fids: subsys {}, dims{}".format(sub_sys, overlap.dims))
                     pseudo_fids.append(overlap.ptrace(surviving_systems))
                 else:
-                    #print("compute_all_pseudo_fids: subsys {}, dims{}".format(sub_sys, overlap.dims))
-                    pseudo_fids.append((overlap.ptrace(surviving_systems)).dag())
+                    pseudo_fids.append(
+                            (overlap.ptrace(surviving_systems)).dag())
             else:
                 if not surviving_systems:
                     pseudo_fids.append(np.trace(overlap))
                 elif not dag:
-                    pseudo_fids.append(self._ptrace(overlap, surviving_systems))
+                    pseudo_fids.append(
+                            self._ptrace(overlap, surviving_systems))
                 else:
-                    pseudo_fids.append(self._ptrace(overlap, surviving_systems).T.conj())
+                    pseudo_fids.append(
+                            self._ptrace(overlap, surviving_systems).T.conj())
 
         if isinstance(dyn.stats, StatsFidCompLocal):
             dyn.stats.wall_time_pseudo_fids_compute += \
@@ -428,7 +415,6 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
                 timeit.default_timer() - time_st
         return all_owd_local_target
 
-
     def compute_local_fid_grad(self, sub_sys, owd_local_targ, prop_grad_fwd_evo, pseudo_fid_dag):
         dyn = self.parent
         time_st = timeit.default_timer()
@@ -458,25 +444,20 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
                 timeit.default_timer() - time_st
         return local_fid_grad
 
-
-    """Not used in optimisation, but useful to have at the end to check answer"""
-    """Exact copy of what FidCompPureChoiGlobal uses"""
-    """ Except from no rounding, which is more useful"""
     def compute_global_choi_fid(self):
+        # Not used in optimisation, but useful to have at the end to check answer
+        # Exact copy of what FidCompPureChoiGlobal uses
+        # Except from no rounding, which is more useful
         dyn = self.parent
         if self.log_level <= logging.DEBUG:
             logger.debug("**** Computing Global Choi fidelity ****")
         dyn.compute_evolution()
 
-        #unit_fid = np.abs((dyn._fwd_evo[-1]*dyn.onto_evo_target).tr())/self.full_dim
-        #
         if dyn.oper_dtype == Qobj:
             f_half = (dyn._fwd_evo[-1] * dyn.onto_evo_target).tr()
         else:
             f_half = np.trace(dyn._fwd_evo[-1].dot(dyn.onto_evo_target.full()))
 
         f = np.real((f_half * np.conjugate(f_half))/(self.full_dim**2))
-        #f_psu = np.abs((dyn._fwd_evo[-1]*dyn.onto_evo_target).tr())/self.full_dim
-        #print("PSU infidelity: {}".format(1-f_psu))
-        return f
 
+        return f
