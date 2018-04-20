@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Aug  1 16:40:43 2016
-
-Alexander Pitchford
-
 Generic functions for the quantum self optimisation.
 In particular there are the functions that build the dynamics generators
 and targets.
 """
+
+# started 2016 Aug 1 by Alexander Pitchford
+# this version 2018 April 6
+# Authors: Ben Dive & Alexander Pitchford
+
 import sys
 import numpy as np
 import random
@@ -116,8 +117,13 @@ def get_coupling_hspace(num_qubits, idx0, sep):
     return hso
 
 def get_drift(dyn, num_qubits=None, topology=None, interact=None,
-              coup_const=None, hspace_order=None):
+              coup_const=None, hspace_order=None, verbosity=None):
     """Build the drift operator based on the topology and interaction type"""
+    if verbosity is None:
+        verbosity = dyn.config.verbosity
+    def printv(msg, verb_tresh=1):
+        if verbosity >= verb_tresh:
+            print(msg)
 
     if num_qubits is None:
         nq = dyn.num_qubits
@@ -151,23 +157,23 @@ def get_drift(dyn, num_qubits=None, topology=None, interact=None,
     # Set coupling parameter
     inter = interact.lower()
     if inter == 'ising':
-        print("using Ising interactions")
+        printv("using Ising interactions")
         S_interacts = [Sz]
     elif inter == 'heisenberg':
-        print("using Heisenberg interactions")
+        printv("using Heisenberg interactions")
         S_interacts = [Sx, Sy, Sz]
     elif len(inter) <= 3:
-        print("using custom interactions...")
+        printv("using custom interactions...")
         S_interacts = []
         for i in inter:
             if i == 'x':
-                print("...adding Sx interactions")
+                printv("...adding Sx interactions")
                 S_interacts.append(Sx)
             elif i == 'y':
-                print("...adding Sy interactions")
+                printv("...adding Sy interactions")
                 S_interacts.append(Sy)
             elif i == 'z':
-                print("...adding Sz interactions")
+                printv("...adding Sz interactions")
                 S_interacts.append(Sz)
         if len(S_interacts) == 0:
             raise ValueError(

@@ -598,44 +598,98 @@ def gen_optim_objects(cfg):
 
     return optim
 
-def config_dynamics(dyn):
+def config_dynamics(dyn, verbosity=None):
     """
     Configure the dynamics generators and targets etc
     """
+    if verbosity is None:
+        verbosity = dyn.config.verbosity
+    def printv(msg, verb_tresh=1):
+        if verbosity >= verb_tresh:
+            print(msg)
+
+    nq = dyn.num_qubits
+    # If the 5 qubit specific configurator is available
+    # then run cross checks
+    cross_check = False
+    if nq == 5:
+        try:
+            import qsonq5
+            cross_check = True
+        except:
+            printv("No qsonq5. Cross checks will be skipped")
 
     # ****************************************************************
     # Define the physics of the problem
     fid_comp = dyn.fid_computer
 
-    print("Configuring drift...")
-
-    nq = dyn.num_qubits
     # ***** Drift *****
-    print("... for {} qubits".format(nq))
+    printv("Configuring drift for {} qubits".format(nq))
 
-    H_d = qso.get_drift(dyn)
-    print("Drift dims {}".format(H_d.dims))
+    H_d = qso.get_drift(dyn, verbosity=verbosity)
+    printv("Drift dims {}".format(H_d.dims))
+    if cross_check:
+        #Check drift
+        printv("Cross-checking drift")
+        H_d_check = qsonq5.get_drift(dyn)
+        if H_d_check is None:
+            printv("Cannot compare drift")
+        else:
+            assert_equal(H_d.dims, H_d_check.dims)
+            printv("Drift dims checked")
+            assert_equal(H_d.full(), H_d_check.full())
+            printv("Drift elements checked")
 
     # Normalise based on ising chain
+    printv("Getting Ising chain drift for normalisation")
     H_d_ising_chain = qso.get_drift(dyn, topology='chain', interact='ising',
-                                        coup_const=1.0)
+                                        coup_const=1.0, verbosity=verbosity)
     norm_fact = H_d_ising_chain.norm() / H_d.norm()
-    print("Normalising drift with factor {}".format(norm_fact))
+    printv("Normalising drift with factor {}".format(norm_fact))
     H_d = H_d*norm_fact
 
     # **** Controls ****
     H_c, Sx_cidx, Sy_cidx, Sz_cidx = qso.get_ctrls(dyn)
-    n_ctrls = len(H_c)
+    if cross_check:
+        #Check controls
+        printv("Cross-checking controls")
+        H_c_check, xc, yc, zc = qsonq5.get_ctrls(dyn)
+
+        for j, H in enumerate(H_c):
+            assert_equal(H.full(), H_c_check[j].full(),
+                         "Control {} is not equal".format(j))
+            printv("Control {} checked".format(j+1))
+
+        assert_equal(Sx_cidx, xc, "Sx indexes not matching")
+        assert_equal(Sy_cidx, yc, "Sy indexes not matching")
+        assert_equal(Sz_cidx, zc, "Sz indexes not matching")
+        printv("Control indexes checked")
 
     #t0 evo
     U_0 = qso.get_initial_op(dyn)
+    if cross_check:
+        #Check initial
+        printv("Cross-checking initial")
+        U_0_check = qsonq5.get_initial_op(dyn)
+        assert_equal(U_0.dims, U_0_check.dims)
+        printv("Initial op dims checked")
+        assert_equal(U_0.full(), U_0_check.full())
+        printv("Initial op elements checked")
 
     #*** Target ****
     U_targ, U_local_targs = qso.get_target(dyn)
+    if cross_check:
+        printv("Cross-checking target")
+        U_targ_check = qsonq5.get_target(dyn)
+        assert_equal(U_targ.dims, U_targ_check.dims)
+        printv("Target dims checked")
+        assert_equal(U_targ.full(), U_targ_check.full())
+        printv("Target elements checked")
 
     sub_dims = []
     for k in range(len(U_local_targs)):
         sub_dims.append(U_local_targs[k].dims[0][0])
+    printv("target set with subsys dims: {}".format(sub_dims))
 
     #Enforcing all dimensions are correct for the qBranch code
     #Not all of these are needed, but this is safer
@@ -659,5 +713,4 @@ def config_dynamics(dyn):
     fid_comp.sub_dims = sub_dims
     fid_comp.num_sub_sys = len(U_local_targs)
 
-    # print("Num acc: {}".format(fid_comp.numer_acc))
-
+    printv("Num acc: {}".format(fid_comp.numer_acc))

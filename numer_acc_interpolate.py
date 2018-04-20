@@ -1,21 +1,57 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Dec 15 11:29:39 2015
+Interpolate the numerical accuracy search data to determine the
+threshold at which it starts to reduce the pulse optimisation success
+below some specified value (typically 50%)
 
-Alexander Pitchford
+It will look for data files in a directory specified by:
+    data_dir/result_subdir
+This can be an absolute path or relative to the current working directory
+or relative to the user home directory by starting data_dir with '~/'
 
-Combine the results of multiple optimisation runs and summarise
-Results must be in the same folder
+A collated results file will be looked for that must match the pattern
+ coll_file_pat = "nal_collate*.txt".
+
+Some parameters used for the optimisations are also needed. These will first
+be looked for in a file interp_fname = "interp.dat". If this is not present
+then it will look for a parameter file matching  param_file_pat = "params*.ini"
+
+The data are interpolated using numpy.polyfit. This gives a line of best fit
+with gradient and an intercept, with variance on both. Hence these can be used
+to estimate the threshold and it's uncertianty. Although the data would seem
+to look more Gaussian than linear, linear would seem to be a good approximation
+around the 50% threshold. This method would probably not be reliable for
+estimating high (e.g. 90%) or low (e.g. 10%) thesholds. However, the objective
+is to look for a trend as system size grows, so the choice of success
+proportion threshold is somehow arbitary, so long as it is reliable and
+consistent. A similar interpolation is used to estimate the number of
+iterations required on average to optimise pulses if the numerical accuracy
+was at the threshold level.
+
+The results are shown in two plots. These show the data points, trend lines,
+and the threshold points are marked with error bars, which illustrate the
+uncertainty.
+
+As the data at the extremes of success proportion are not expected to fit
+the linear model, then these are excluded from the interpolation. For the
+first attempt these exclusion boundaries are estimated based on the fidelity
+error target. It is possible to change them interactively using console
+input.
+
+The parameters used, iterpolation results, and exclusion boundaries are
+saved in the interp_fname = "interp.dat" file. So if the script is re-run,
+then the exclusion boundaries are rememebered. Also the plots are saved
+to file.
 """
+
+# this version 2018 April 6
+# Author: Alexander Pitchford
 
 import sys
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 import glob
-#import re
-#import datetime
-#import shutil
 import qsoconfig
 import qsoresult
 
@@ -27,13 +63,13 @@ def round_sigfigs(num, sig_figs):
     else:
         return 0  # Can't take the log of 0
 
-#data_dir = "output"
+DEF_SUCC_THRESH = 0.5
 data_dir = "example_output"
-result_subdir = "ising_chain-3q-nal"
+result_subdir = "3qubit-chain-ising_equal-xy_ctrl-cNOT1-sens-nq3fet1e-3-try4"
+#result_subdir = "5qubit-chain-ising_equal-xy_ctrl-cNOT1-sens-nq5fet3e-2-try2"
+#result_subdir = "7qubit-chain-ising_equal-xy_ctrl-cNOT1-sens-nq7fet1e-2-try2"
 #data_dir = "output/optim_CNOT"
-#result_subdir = "nal"
-#set comb_coll_fname=None to collate separately
-comb_coll_fname = None
+#result_subdir = "nal""nal_collate*.txt"
 #result_subdir = "5qubit-chain-ising_equal-xy_ctrl-cNOT1-fet1e-1-na2e-2"
 param_file_pat = "params*.ini"
 coll_file_pat = "nal_collate*.txt"
@@ -65,8 +101,6 @@ files = glob.glob(os.path.join(res_dir, coll_file_pat))
 
 if len(files) == 0:
     print("No collation file to process")
-
-
 
 plot_fpath = os.path.join(res_dir, plot_fname)
 # Take the most recent file, assume last in list
@@ -105,7 +139,7 @@ if os.path.isfile(interp_fpath):
     try:
         succ_thresh = data[3]
     except:
-        succ_thresh = 0.5
+        succ_thresh = DEF_SUCC_THRESH
 else:
     # No interp results file, look for a parameter file
     param_pat = os.path.join(res_dir, param_file_pat)
@@ -131,7 +165,6 @@ else:
     na_lb = fid_comp.st_numer_acc
     na_ub = fid_comp.end_numer_acc
     succ_thresh = 0.5
-
 
 fig = plt.figure(figsize=(16,6))
 # This turns on interactive plotting

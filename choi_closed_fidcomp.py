@@ -71,7 +71,8 @@ class FidCompPureChoiGlobal(fidcomp.FidCompUnitary):
             norm = np.trace(A)
         else:
             norm = A
-        return my_round(np.real(norm) / self.dimensional_norm**2, self.numer_acc)
+        return my_round(np.real(norm) / self.dimensional_norm**2,
+                        self.numer_acc)
 
     def choi_norm_grad(self, A):
         return my_round(np.real(A) / self.dimensional_norm**2, self.numer_acc)
@@ -175,8 +176,10 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
     sub_dims : List of int
         dimensions of the U_local_targs
         Assumes all local targets are unitary ops (hence square matrices)
+
     num_sub_sys : int
         number of sub systems
+
     numer_acc  : float
         Numerical accuracy. Fidelity will be rounded to this level
         The default 0 means no rounding
@@ -219,8 +222,8 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
         self.dimensional_norm = self.full_dim
         self.oper_dims = [self.sub_dims, self.sub_dims]
 
-        #Simply the local targets with the relevent number of identities tensored
-        # before and after it.
+        # Simply the local targets with the relevent number of identities
+        # tensored before and after it.
         # We only ever need the .dag() of this, so only storing that.
         self.large_local_targs_dag = []
         for sub_sys in range(self.num_sub_sys):
@@ -305,7 +308,8 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
                     #target_less_owd_evo_dims = [self.sub_dims, self.sub_dims]
 
             fwd_evo = dyn._fwd_evo[k]
-            owd_local_targs = self.compute_all_owd_local_target(target_less_owd_evo)
+            owd_local_targs = self.compute_all_owd_local_target(
+                                                        target_less_owd_evo)
             for j in range(n_ctrls):
                 prop_grad = dyn._get_prop_grad(k, j)
                 total_fid_grad = 0
@@ -315,7 +319,8 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
                     prop_grad_fwd_evo = prop_grad.dot(fwd_evo)
                 for sub_sys in range(self.num_sub_sys):
                     total_fid_grad += self.compute_local_fid_grad(sub_sys,
-                        owd_local_targs[sub_sys], prop_grad_fwd_evo, pseudo_fids_dag[sub_sys])
+                                 owd_local_targs[sub_sys], prop_grad_fwd_evo,
+                                 pseudo_fids_dag[sub_sys])
                 grad[k, j] = total_fid_grad
         if dyn.stats is not None:
             dyn.stats.wall_time_gradient_compute += \
@@ -387,12 +392,16 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
             # replace .dag() and trace with absolute value squared
             # in case of only one sub system
             if isinstance(pseudo_fid, complex):
-                local_fid_unnorm = np.real( pseudo_fid * np.ma.conjugate(pseudo_fid) )
+                local_fid_unnorm = np.real(pseudo_fid
+                                           * np.ma.conjugate(pseudo_fid))
             elif dyn.oper_dtype == Qobj:
-                local_fid_unnorm = np.real((pseudo_fid * pseudo_fid.dag()).tr())
+                local_fid_unnorm = np.real((pseudo_fid
+                                            * pseudo_fid.dag()).tr())
             else:
-                local_fid_unnorm = np.real(np.trace(pseudo_fid.dot(pseudo_fid.T.conj())))
-            local_fid_norm = (local_fid_unnorm / (self.full_dim * self.sub_dims[sub_sys]))
+                local_fid_unnorm = np.real(np.trace(pseudo_fid.dot(
+                                                    pseudo_fid.T.conj())))
+            local_fid_norm = (local_fid_unnorm
+                              / (self.full_dim * self.sub_dims[sub_sys]))
             local_fid_norm = my_round(local_fid_norm, self.numer_acc)
             total_fid += (local_fid_norm - 1)
 
@@ -407,15 +416,19 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
         all_owd_local_target = []
         for sub_sys in range(self.num_sub_sys):
             if dyn.oper_dtype == Qobj:
-                all_owd_local_target.append(self.large_local_targs_dag[sub_sys]*target_less_owd_evo)
+                all_owd_local_target.append(self.large_local_targs_dag[sub_sys]
+                                            *target_less_owd_evo)
             else:
-                all_owd_local_target.append(self.large_local_targs_dag[sub_sys].dot(target_less_owd_evo))
+                all_owd_local_target.append(
+                        self.large_local_targs_dag[sub_sys].dot(
+                                                        target_less_owd_evo))
         if isinstance(dyn.stats, StatsFidCompLocal):
             dyn.stats.wall_time_local_target_compute += \
                 timeit.default_timer() - time_st
         return all_owd_local_target
 
-    def compute_local_fid_grad(self, sub_sys, owd_local_targ, prop_grad_fwd_evo, pseudo_fid_dag):
+    def compute_local_fid_grad(self, sub_sys, owd_local_targ,
+                               prop_grad_fwd_evo, pseudo_fid_dag):
         dyn = self.parent
         time_st = timeit.default_timer()
         surviving_systems = list(range(self.num_sub_sys))
@@ -431,11 +444,13 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
                 overlap = pseudo_grad.dot(np.ma.conjugate(pseudo_fid_dag))
         else:
             if dyn.oper_dtype == Qobj:
-                print("compute_local_fid_grad: subsys {}, dims{}".format(sub_sys, (owd_local_targ * prop_grad_fwd_evo).dims))
-                pseudo_grad = (owd_local_targ * prop_grad_fwd_evo).ptrace(surviving_systems)
+                pseudo_grad = (owd_local_targ
+                               * prop_grad_fwd_evo).ptrace(surviving_systems)
                 overlap = (pseudo_grad * pseudo_fid_dag).tr()
             else:
-                pseudo_grad = self._ptrace(owd_local_targ.dot(prop_grad_fwd_evo), surviving_systems)
+                pseudo_grad = self._ptrace(
+                                        owd_local_targ.dot(prop_grad_fwd_evo),
+                                        surviving_systems)
                 overlap = np.trace(pseudo_grad.dot(pseudo_fid_dag))
         local_fid_grad = np.real(overlap/norm)*2
         local_fid_grad = my_round(local_fid_grad, self.numer_acc)
@@ -445,7 +460,8 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
         return local_fid_grad
 
     def compute_global_choi_fid(self):
-        # Not used in optimisation, but useful to have at the end to check answer
+        # Not used in optimisation, but useful to have at the end
+        # to check answer.
         # Exact copy of what FidCompPureChoiGlobal uses
         # Except from no rounding, which is more useful
         dyn = self.parent
