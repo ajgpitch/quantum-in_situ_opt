@@ -145,6 +145,10 @@ def run_qso_sims(optim, num_reps=None, verbosity=None,
 
     try:
         for k in range(num_reps):
+            # If hspace_order has random 0 index or 01 separation
+            # (relating to the position and separation of the qubits
+            # which the 2-qubit gate acts upon) then regenerate the
+            # the hspace_order for each repetition
             if dyn.auto_hspace and (dyn.hspace_0_idx < 0
                                     or dyn.hspace_01_sep < 0):
                 dyn.hspace_order = qso.get_coupling_hspace(dyn.num_qubits,

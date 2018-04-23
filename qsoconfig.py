@@ -642,6 +642,17 @@ def config_dynamics(dyn, verbosity=None):
 
     # ***** Drift *****
     printv("Configuring drift for {} qubits".format(nq))
+    # If automatic generation of the hspace order is specified
+    # and there are no random elements, then generate it now as it is
+    # is used in constructing the drift.
+    # It there are random elements, then it is regenerated, along with the
+    # drift, for each repetition, so pointless doing it now.
+    if dyn.auto_hspace and (dyn.hspace_0_idx >= 0
+                            and dyn.hspace_01_sep >= 0):
+        dyn.hspace_order = qso.get_coupling_hspace(dyn.num_qubits,
+                                                   dyn.hspace_0_idx,
+                                                   dyn.hspace_01_sep)
+        printv("using hspace_order = {}".format(dyn.hspace_order))
 
     H_d = qso.get_drift(dyn, verbosity=verbosity)
     printv("Drift dims {}".format(H_d.dims))
