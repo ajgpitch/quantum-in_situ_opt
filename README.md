@@ -1,6 +1,6 @@
 Simulation of *in situ* optimisation of gates in a quantum simulator
 ====================================================================
-[Alexander Pitchford](http://github.com/ajgpitch), [Benjamin Dive](mailto:benjamindive@gmail.com)
+[Alexander Pitchford](http://github.com/ajgpitch), [Benjamin Dive](https://github.com/BenLondon91)
 
 The code in this repository can be used to generate and analyse the data that produce the numerical results in the paper 
 [In situ upgrade of quantum simulators to universal computers](https://arxiv.org/abs/1701.01723). 
