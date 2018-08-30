@@ -100,7 +100,8 @@ if dyn.dump:
 print("Output files will be saved to:\n{}".format(cfg.output_dir))
 if cfg.use_param_file:
     # Copy the parameters file to the output directory for reference
-    param_ref_fpath = os.path.join(cfg.output_dir, cfg.param_fname)
+    param_ref_fpath = os.path.join(cfg.output_dir,
+                                   os.path.basename(cfg.param_fname))
     shutil.copyfile(cfg.param_fpath, param_ref_fpath)
     print("Config parameters copied to:\n{}".format(param_ref_fpath))
 

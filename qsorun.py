@@ -184,10 +184,13 @@ def run_qso_sims(optim, num_reps=None, verbosity=None,
 
             if optim.dump:
                 optim.dump.clear()
+                optim.dump.data_sep = optim.dump.summary_sep = '\t'
                 optim.dump.dump_file_ext = out_file_ext
-                optim.dump.fname_base = "optim_dump_rep{}_{}".format(k+1, cfg_str)
+                optim.dump.fname_base = "optim_dump_rep{}_{}".format(k+1,
+                                                                     cfg_str)
             if dyn.dump:
                 dyn.dump.clear()
+                dyn.dump.data_sep = dyn.dump.summary_sep = '\t'
                 dyn.dump.dump_file_ext = out_file_ext
                 dyn.dump.fname_base = "dyn_dump_rep{}_{}".format(k+1, cfg_str)
 
@@ -203,7 +206,6 @@ def run_qso_sims(optim, num_reps=None, verbosity=None,
             optres.dyn_dump = dyn.dump
 
             repres = multires.add_optim_result(optres)
-
 
             if cfg.save_final_amps:
                 pulsefile = "final_amps_{}_rep{}.{}".format(cfg_str, k+1,

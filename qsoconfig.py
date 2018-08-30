@@ -507,6 +507,9 @@ def gen_optim_objects(cfg, verbosity=None):
     else:
         raise errors.UsageError("Unknown fid type {}".format(cfg.fid_type))
     fid_comp = dyn.fid_computer
+    # If True and optim dumping set to at least SUMMARY, then the
+    # global fid will be added to the summary (when using pure_choi_local)
+    fid_comp.dump_global_choi_fid = False
     # This is the maximum precsion that sub-system fidelities are 'measured'
     # see choi_closed_fidcomp.my_round for details
     # Zero implies full machine precision

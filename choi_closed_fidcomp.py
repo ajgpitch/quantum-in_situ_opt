@@ -17,6 +17,7 @@ from qutip import Qobj, identity, tensor
 logger = logging.get_logger()
 # QuTiP control modules
 import qutip.control.fidcomp as fidcomp
+import qutip.control.optimizer as optimizer
 # local imports
 from ptrace import partial_trace, calc_perm
 from qsostats import StatsFidCompLocal
@@ -270,6 +271,10 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
             if self.log_level <= logging.DEBUG:
                 logger.debug("Fidelity (pre normalisation): {}".format(
                     self.fidelity_prenorm))
+            if (self.dump_global_choi_fid and dyn.parent.dump is not None
+                                          and dyn.parent.dump.dump_summary):
+                self.add_choi_fid_to_summary_dump()
+
         return self.fidelity_prenorm
 
     def compute_fid_grad(self):
@@ -477,3 +482,21 @@ class FidCompPureChoiLocal(fidcomp.FidCompUnitary):
         f = np.real((f_half * np.conjugate(f_half))/(self.full_dim**2))
 
         return f
+
+    def add_choi_fid_to_summary_dump(self):
+        dyn = self.parent
+        optim = dyn.parent
+        if hasattr(optim, 'iter_summary'):
+            ois = optim.iter_summary
+        else:
+            ois = optim.iter_summary = optimizer.OptimIterSummary()
+        ois.global_fid = float(self.compute_global_choi_fid())
+        ois.local_fid = float(self.get_fidelity())
+        if 'local_fid' not in ois.summary_property_names:
+            ois_cls = ois.__class__
+            ois_cls.summary_property_names += ('local_fid', 'global_fid')
+            ois_cls.summary_property_fmt_type += ('g', 'g')
+            ois_cls.summary_property_fmt_prec += (8, 8)
+            ois.summary_property_names = ois_cls.summary_property_names
+            ois.summary_property_fmt_type = ois_cls.summary_property_fmt_type
+            ois.summary_property_fmt_prec = ois_cls.summary_property_fmt_prec
