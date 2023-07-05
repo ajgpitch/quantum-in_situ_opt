@@ -182,8 +182,10 @@ def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
     cfg.out_file_ext = "txt"
 
     # Optimizer config
-    # Multi-var optimisation methdo
+    # Multi-var optimisation method
     cfg.optim_method = 'LBFGSB'
+    # Set False to skip
+    cfg.optimize_ctrls = True
     # Pulse generator type
     # For other option see qutip.control.pulsegen.create_pulse_gen
     # Only the random types make sense with multiple repetitions

@@ -28,7 +28,8 @@ def run_qso_sims(optim, num_reps=None, verbosity=None,
                  report_phys_params=None, save_results=None,
                  scen_idx=None, reps_idx=None, num_threads=None,
                  num_tslots=None, evo_time=None,
-                 fid_err_targ=None, numer_acc=None):
+                 fid_err_targ=None, numer_acc=None,
+                 optimize_ctrls=None, log_fid_and_ctrl_amps=True):
     """
     Attempts a pulse optimisation for specified number of repititions
     (num_reps). Where kwargs are not passed the value is taken from the
@@ -74,6 +75,7 @@ def run_qso_sims(optim, num_reps=None, verbosity=None,
         pgen.tau = None
     if fid_err_targ is not None: tc.fid_err_targ = fid_err_targ
     if numer_acc is not None: fid_comp.numer_acc = numer_acc
+    if optimize_ctrls is None: num_threads = cfg.optimize_ctrls
 
     # Only use stdout for logging messages when first process
     # (which is true when the idx vars are both None or 0)
@@ -87,6 +89,13 @@ def run_qso_sims(optim, num_reps=None, verbosity=None,
         base_log = False
     else:
         lfh = sys.stdout
+
+    if log_fid_and_ctrl_amps:
+        fid_amps_fname = "fid_ctrl_amps-{}.{}".format(cfg_str, out_file_ext)
+        fpath = os.path.join(cfg.output_dir, fid_amps_fname)
+        fcafh = open(fpath, 'w')
+    else:
+        fcafh = None
 
     if verbosity > 0:
         lfh.write("want {} threads per rep\n".format(num_threads))
@@ -200,12 +209,22 @@ def run_qso_sims(optim, num_reps=None, verbosity=None,
             if verbosity > 1:
                 lfh.write("Max wall time {}\n".format(
                             optim.termination_conditions.max_wall_time))
-            optres = optim.run_optimization()
 
+
+            if not optimize_ctrls:
+                optim.termination_conditions.max_iterations = 0
+
+            optres = optim.run_optimization()
             optres.optim_dump = optim.dump
             optres.dyn_dump = dyn.dump
 
             repres = multires.add_optim_result(optres)
+
+            if log_fid_and_ctrl_amps:
+                line = str(dyn.fid_computer.get_fid_err()) + "\t"
+                vals = [str(v) for v in dyn.ctrl_amps.flatten()]
+                line += "\t".join(vals) + "\n"
+                fcafh.write(line)
 
             if cfg.save_final_amps:
                 pulsefile = "final_amps_{}_rep{}.{}".format(cfg_str, k+1,
@@ -271,6 +290,9 @@ def run_qso_sims(optim, num_reps=None, verbosity=None,
         multires.report_analysis(f=lfh)
         if report_phys_params:
             qso.print_phys_params(optim, f=lfh)
+
+    if fcafh:
+        fcafh.close()
 
     if not base_log:
         lfh.close()
