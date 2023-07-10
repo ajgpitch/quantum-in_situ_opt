@@ -88,6 +88,8 @@ def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
     if parse_cl_args:
         parser = argparse.ArgumentParser(
                 description="Command line argument parser")
+        parser.add_argument('-w', '--working_dir', type=str,
+                            help="working directory")
         parser.add_argument('-p', '--param_file', type=str, default="",
                             help="Parameters file name")
         parser.add_argument('-o', '--output_dir', type=str, default="",
@@ -131,7 +133,16 @@ def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
         cfg.args = None
 
     cfg.log_level = log_level
-
+    
+    # Load local settings
+    local_settings_fpath = os.path.join(os.getcwd(), LOCAL_SETTINGS_FILE)
+    if os.path.isfile(local_settings_fpath):
+        printv("Loading local settings from:\n{}".format(local_settings_fpath))
+        loadparams.load_parameters(local_settings_fpath, cfg, 'config')
+        if (param_fname is None
+                and cfg.param_file is not None and len(cfg.param_file) > 0):
+            param_fname = cfg.param_file
+    
     cfg.use_param_file = True
 
     if parse_cl_args and len(cfg.args['param_file']) > 0:
@@ -260,6 +271,13 @@ def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
 
         if cfg.args['job_id'] > 0:
             cfg.job_id = cfg.args['job_id']
+    
+    if cfg.working_dir[0] == '~':
+        cfg.working_dir = os.path.expanduser(cfg.working_dir)
+    if cfg.output_subdir is not None:
+        cfg.output_dir = os.path.join(cfg.working_dir, cfg.output_subdir)
+    else:
+        cfg.output_dir = cfg.working_dir
 
     if cfg.job_id:
         printv("Processing job ID: {}".format(cfg.job_id))
