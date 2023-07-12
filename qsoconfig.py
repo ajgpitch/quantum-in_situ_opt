@@ -43,6 +43,10 @@ from choi_closed_fidcomp import FidCompPureChoiLocal, FidCompPureChoiGlobal
 import qso
 import qsostats
 
+# File with settings for the local machine,
+# for instance the working directory where files will be found and output
+LOCAL_SETTINGS_FILE = "local_settings.ini"
+
 log_level = logging.INFO
 logger.setLevel(log_level)
 
@@ -171,7 +175,8 @@ def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
     # Script operational parameters
     cfg.job_id = 0
     cfg.job_idx = 0
-    cfg.verbosity = 0
+    try: cfg.verbosity
+    except AttributeError: cfg.verbosity = 0
     # Folder where output files will be stored
     # ~ can be used for home folder
     cfg.output_dir = "~quant_self_optim/output/default"

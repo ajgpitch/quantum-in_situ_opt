@@ -35,10 +35,16 @@ Most of the code is organised into modules. There are then Python scripts and no
 
 This [qso-n_qubit-CNOT](qso-n_qubit-CNOT.py) script will perform the optimisation of a CNOT on quantum system that can be configured in a wide variety of topologies and interaction types. Details of its actions and options are given in the main docstring of the file.
 
-It requires a parameter file. By default it will use [params-quant_self_opt.ini](params-quant_self_opt.ini). To run it with the default parameters, in a console, enter:
+It requires a parameter file. By default, it will use the paramter file specified in `local_settings.ini`. To run it with the default parameters, in a console, enter:
 
 ```
 $ python qso-n_qubit-CNOT.py 
+```
+
+The settings in `local_settings.ini` (e.g. working directory, default parameter file) are expected to change between different machines. You should use the following command to avoid local changes being pushed to the upstream repo:
+
+```
+git update-index --skip-worktree local_settings.ini
 ```
 
 The parameters all link to object attributes. These are described where they are first set to their default values in [qsoconfig.py](qsoconfig.py).
