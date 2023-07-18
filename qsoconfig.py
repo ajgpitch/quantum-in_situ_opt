@@ -92,8 +92,6 @@ def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
     if parse_cl_args:
         parser = argparse.ArgumentParser(
                 description="Command line argument parser")
-        parser.add_argument('-w', '--working_dir', type=str,
-                            help="working directory")
         parser.add_argument('-p', '--param_file', type=str, default="",
                             help="Parameters file name")
         parser.add_argument('-o', '--output_dir', type=str, default="",
@@ -171,12 +169,11 @@ def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
                     "Using defaults in code.").format(param_fname)
             cfg.use_param_file = False
     cfg.param_fname = param_fname
-
+    
     # Script operational parameters
     cfg.job_id = 0
     cfg.job_idx = 0
-    try: cfg.verbosity
-    except AttributeError: cfg.verbosity = 0
+    cfg.verbosity = 0
     # Folder where output files will be stored
     # ~ can be used for home folder
     cfg.output_dir = "~quant_self_optim/output/default"
@@ -277,12 +274,8 @@ def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
         if cfg.args['job_id'] > 0:
             cfg.job_id = cfg.args['job_id']
     
-    if cfg.working_dir[0] == '~':
-        cfg.working_dir = os.path.expanduser(cfg.working_dir)
-    if cfg.output_subdir is not None:
-        cfg.output_dir = os.path.join(cfg.working_dir, cfg.output_subdir)
-    else:
-        cfg.output_dir = cfg.working_dir
+    if cfg.output_dir[0] == '~':
+        cfg.output_dir = os.path.expanduser(cfg.output_dir)
 
     if cfg.job_id:
         printv("Processing job ID: {}".format(cfg.job_id))
@@ -299,7 +292,7 @@ def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
             cfg.plot_file_ext = "{}.{}".format(cfg.job_id, cfg.plot_file_type)
 
     logger.setLevel(cfg.log_level)
-
+    
     return cfg
 
 def gen_optim_objects(cfg, verbosity=None):
