@@ -102,8 +102,3 @@ ENV/
 
 # mypy
 .mypy_cache/
-
-
-# local settings file
-#local_settings.ini
-
