@@ -76,7 +76,7 @@ def gen_config(param_fname=None):
     return optim
 
 
-def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
+def gen_optim_config(default_param_fname=None, parse_cl_args=True, verbosity=None):
     """
     Create the optimiser objects and load the configuration.
 
@@ -87,8 +87,16 @@ def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
     def printv(msg, verb_tresh=1):
         if verbosity and verbosity >= verb_tresh:
             print(msg)
-
+    
     cfg = optimconfig.OptimConfig()
+    cfg.param_file = None
+    
+    # Load local settings
+    local_settings_fpath = os.path.join(os.getcwd(), LOCAL_SETTINGS_FILE)
+    if os.path.isfile(local_settings_fpath):
+        printv("Loading local settings from:\n{}".format(local_settings_fpath))
+        loadparams.load_parameters(local_settings_fpath, cfg, 'config')
+    
     if parse_cl_args:
         parser = argparse.ArgumentParser(
                 description="Command line argument parser")
@@ -136,14 +144,10 @@ def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
 
     cfg.log_level = log_level
     
-    # Load local settings
-    local_settings_fpath = os.path.join(os.getcwd(), LOCAL_SETTINGS_FILE)
-    if os.path.isfile(local_settings_fpath):
-        printv("Loading local settings from:\n{}".format(local_settings_fpath))
-        loadparams.load_parameters(local_settings_fpath, cfg, 'config')
-        if (param_fname is None
-                and cfg.param_file is not None and len(cfg.param_file) > 0):
-            param_fname = cfg.param_file
+    if cfg.param_file is not None and len(cfg.param_file) > 0:
+        param_fname = cfg.param_file
+    else:
+        param_fname = default_param_fname
     
     cfg.use_param_file = True
 

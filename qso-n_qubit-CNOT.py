@@ -56,7 +56,9 @@ import signal
 import qutip.logging_utils as logging
 logger = logging.get_logger()
 #Local
-import qsoconfig, qso, qsorun
+import qsoconfig
+import qso
+import qsorun
 from doubleprint import DoublePrint
 
 def sigterm_handler(_signo, _stack_frame):
