@@ -43,6 +43,10 @@ from choi_closed_fidcomp import FidCompPureChoiLocal, FidCompPureChoiGlobal
 import qso
 import qsostats
 
+# File with settings for the local machine,
+# for instance the working directory where files will be found and output
+LOCAL_SETTINGS_FILE = "local_settings.ini"
+
 log_level = logging.INFO
 logger.setLevel(log_level)
 
@@ -72,7 +76,7 @@ def gen_config(param_fname=None):
     return optim
 
 
-def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
+def gen_optim_config(default_param_fname=None, parse_cl_args=True, verbosity=None):
     """
     Create the optimiser objects and load the configuration.
 
@@ -83,8 +87,16 @@ def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
     def printv(msg, verb_tresh=1):
         if verbosity and verbosity >= verb_tresh:
             print(msg)
-
+    
     cfg = optimconfig.OptimConfig()
+    cfg.param_file = None
+    
+    # Load local settings
+    local_settings_fpath = os.path.join(os.getcwd(), LOCAL_SETTINGS_FILE)
+    if os.path.isfile(local_settings_fpath):
+        printv("Loading local settings from:\n{}".format(local_settings_fpath))
+        loadparams.load_parameters(local_settings_fpath, cfg, 'config')
+    
     if parse_cl_args:
         parser = argparse.ArgumentParser(
                 description="Command line argument parser")
@@ -131,7 +143,12 @@ def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
         cfg.args = None
 
     cfg.log_level = log_level
-
+    
+    if cfg.param_file is not None and len(cfg.param_file) > 0:
+        param_fname = cfg.param_file
+    else:
+        param_fname = default_param_fname
+    
     cfg.use_param_file = True
 
     if parse_cl_args and len(cfg.args['param_file']) > 0:
@@ -156,7 +173,7 @@ def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
                     "Using defaults in code.").format(param_fname)
             cfg.use_param_file = False
     cfg.param_fname = param_fname
-
+    
     # Script operational parameters
     cfg.job_id = 0
     cfg.job_idx = 0
@@ -260,6 +277,9 @@ def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
 
         if cfg.args['job_id'] > 0:
             cfg.job_id = cfg.args['job_id']
+    
+    if cfg.output_dir[0] == '~':
+        cfg.output_dir = os.path.expanduser(cfg.output_dir)
 
     if cfg.job_id:
         printv("Processing job ID: {}".format(cfg.job_id))
@@ -276,7 +296,7 @@ def gen_optim_config(param_fname=None, parse_cl_args=True, verbosity=None):
             cfg.plot_file_ext = "{}.{}".format(cfg.job_id, cfg.plot_file_type)
 
     logger.setLevel(cfg.log_level)
-
+    
     return cfg
 
 def gen_optim_objects(cfg, verbosity=None):
